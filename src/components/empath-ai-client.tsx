@@ -4,11 +4,12 @@ import { personalizeTherapyStyle } from "@/ai/flows/therapy-style-personalizatio
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { BrainCircuit, Mic, Send, Settings } from "lucide-react";
+import { BrainCircuit, Mic, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import ChatMessage from "./chat-message";
 import SettingsDialog from "./settings-dialog";
 import { Textarea } from "./ui/textarea";
+import { ScrollArea } from "./ui/scroll-area";
 
 declare global {
   interface Window {
@@ -118,7 +119,7 @@ export default function EmpathAIClient() {
 
       speechRecognition.current = recognition;
     }
-  }, [selectedVoice]);
+  }, [selectedVoice, toast]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -204,19 +205,21 @@ export default function EmpathAIClient() {
         />
       </header>
 
-      <main className="flex-1 flex flex-col p-4 md:p-6 overflow-hidden">
+      <main className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto">
         <Card className="flex-1 flex flex-col shadow-lg">
-          <CardContent className="flex-1 p-2 md:p-4 overflow-y-auto">
-            <div className="space-y-4">
-              {messages.map((msg) => (
-                <ChatMessage key={msg.id} message={msg} />
-              ))}
-              {isListening && userInput && (
-                 <ChatMessage message={{id: 'interim', role: 'user', content: userInput}} isInterim/>
-              )}
-              {isLoading && <ChatMessage.Loading />}
-              <div ref={messagesEndRef} />
-            </div>
+          <CardContent className="flex-1 p-2 md:p-4">
+            <ScrollArea className="h-full">
+              <div className="space-y-4 pr-4">
+                {messages.map((msg) => (
+                  <ChatMessage key={msg.id} message={msg} />
+                ))}
+                {isListening && userInput && (
+                   <ChatMessage message={{id: 'interim', role: 'user', content: userInput}} isInterim/>
+                )}
+                {isLoading && <ChatMessage.Loading />}
+                <div ref={messagesEndRef} />
+              </div>
+            </ScrollArea>
           </CardContent>
         </Card>
       </main>
