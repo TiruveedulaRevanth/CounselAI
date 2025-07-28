@@ -55,7 +55,7 @@ const personalizeTherapyStyleFlow = ai.defineFlow(
     inputSchema: PersonalizeTherapyStyleInputSchema,
     outputSchema: PersonalizeTherapyStyleOutputSchema,
   },
-  async input => {
+  async (input) => {
     const {output} = await prompt(input);
     return output!;
   }
