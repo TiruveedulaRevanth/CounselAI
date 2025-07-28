@@ -1,14 +1,14 @@
 "use client";
 
 import { personalizeTherapyStyle } from "@/ai/flows/therapy-style-personalization";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Bot, BrainCircuit, Mic, Send, Settings, User } from "lucide-react";
+import { BrainCircuit, Mic, Send, Settings } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import ChatMessage from "./chat-message";
 import SettingsDialog from "./settings-dialog";
+import { Textarea } from "./ui/textarea";
 
 declare global {
   interface Window {
@@ -30,7 +30,7 @@ export default function EmpathAIClient() {
       id: "1",
       role: "assistant",
       content:
-        "Hello! I'm EmpathAI, your personal mental health assistant. I'm here to listen and support you. Tap the microphone to begin.",
+        "Hello! I'm EmpathAI, your personal mental health assistant. I'm here to listen and support you. You can type a message or tap the microphone to begin.",
     },
   ]);
   const [isListening, setIsListening] = useState(false);
@@ -54,6 +54,8 @@ export default function EmpathAIClient() {
       if (selectedVoice) {
         utterance.voice = selectedVoice;
       }
+      // Stop any currently speaking utterance before starting a new one
+      window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
     }
   };
@@ -64,7 +66,9 @@ export default function EmpathAIClient() {
         const availableVoices = window.speechSynthesis.getVoices();
         setVoices(availableVoices);
         if (availableVoices.length > 0 && !selectedVoice) {
-          setSelectedVoice(availableVoices[0]);
+          // Find a preferred voice or default to the first one
+          const preferredVoice = availableVoices.find(v => v.name.includes('Google') && v.lang.startsWith('en')) || availableVoices[0];
+          setSelectedVoice(preferredVoice);
         }
       };
       window.speechSynthesis.onvoiceschanged = loadVoices;
@@ -134,7 +138,7 @@ export default function EmpathAIClient() {
   };
 
   const handleSend = async (text: string) => {
-    if (!text.trim()) return;
+    if (!text.trim() || isLoading) return;
 
     const newUserMessage: Message = {
       id: Date.now().toString(),
@@ -144,6 +148,7 @@ export default function EmpathAIClient() {
     setMessages((prev) => [...prev, newUserMessage]);
     setUserInput("");
     setIsLoading(true);
+    window.speechSynthesis.cancel(); // Stop speaking when user sends a message
 
     try {
       const result = await personalizeTherapyStyle({
@@ -175,6 +180,13 @@ export default function EmpathAIClient() {
       setIsLoading(false);
     }
   };
+  
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend(userInput);
+    }
+  }
 
   return (
     <div className="flex flex-col h-screen bg-background font-body text-foreground">
@@ -209,20 +221,39 @@ export default function EmpathAIClient() {
         </Card>
       </main>
 
-      <footer className="p-4 flex flex-col items-center justify-center space-y-4">
-        <p className="text-sm text-muted-foreground text-center">
-            {isListening ? "Listening... Click the mic to send." : "Tap the microphone to start speaking."}
+      <footer className="p-4 border-t">
+        <div className="flex items-start gap-2 max-w-2xl mx-auto">
+          <Textarea
+            value={userInput}
+            onChange={(e) => setUserInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Type your message or use the microphone..."
+            className="flex-1 resize-none"
+            rows={1}
+            disabled={isLoading || isListening}
+          />
+           <Button
+            size="icon"
+            className={`h-10 w-10 shrink-0 ${
+              isListening ? "bg-destructive" : "bg-primary"
+            }`}
+            onClick={handleMicClick}
+            disabled={isLoading}
+          >
+            <Mic className="h-5 w-5" />
+          </Button>
+          <Button
+            size="icon"
+            onClick={() => handleSend(userInput)}
+            disabled={!userInput.trim() || isLoading}
+            className="h-10 w-10 shrink-0"
+          >
+            <Send className="h-5 w-5" />
+          </Button>
+        </div>
+         <p className="text-sm text-muted-foreground text-center mt-2">
+            {isListening ? "Listening... Click the mic to send." : isLoading ? "" : "Press Enter to send. Use Shift+Enter for a new line."}
         </p>
-        <Button
-          size="icon"
-          className={`h-20 w-20 rounded-full shadow-2xl transition-all duration-300 ${
-            isListening ? "bg-destructive animate-pulse" : "bg-primary"
-          }`}
-          onClick={handleMicClick}
-          disabled={isLoading}
-        >
-          <Mic className="h-10 w-10" />
-        </Button>
       </footer>
     </div>
   );
