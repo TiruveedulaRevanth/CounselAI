@@ -6,7 +6,7 @@ import { personalizeTherapyStyle } from "@/ai/flows/therapy-style-personalizatio
 import { summarizeChat } from "@/ai/flows/summarize-chat-flow";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Mic, Plus, Send, Square, Trash2 } from "lucide-react";
+import { LogOut, Mic, Plus, Send, Settings, Square, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import ChatMessage from "./chat-message";
 import SettingsDialog from "./settings-dialog";
@@ -95,6 +95,8 @@ export default function EmpathAIClient() {
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [isSignUpOpen, setIsSignUpOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
 
   const [isListening, setIsListening] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -121,6 +123,14 @@ export default function EmpathAIClient() {
     localStorage.setItem("counselai-signed-in", "true");
     setIsSignedIn(true);
     setIsSignUpOpen(false);
+  }
+
+  const handleSignOut = () => {
+    localStorage.removeItem("counselai-signed-in");
+    setIsSignedIn(false);
+    setChats([]);
+    setActiveChatId(null);
+    setIsSignUpOpen(true);
   }
 
   // Load chats from local storage on initial render
@@ -465,6 +475,8 @@ export default function EmpathAIClient() {
           isSignUpOpen={isSignUpOpen}
           setIsSignUpOpen={setIsSignUpOpen}
           onSignUpSuccess={handleSignUpSuccess}
+          isSettingsOpen={isSettingsOpen}
+          setIsSettingsOpen={setIsSettingsOpen}
         />
       <Sidebar>
         <SidebarHeader>
@@ -522,6 +534,14 @@ export default function EmpathAIClient() {
             ))}
         </SidebarContent>
         <SidebarFooter>
+           {isSignedIn && (
+            <div className="p-2">
+                <Button variant="ghost" className="w-full justify-start gap-2" onClick={handleSignOut}>
+                    <LogOut className="h-4 w-4" />
+                    <span>Sign Out</span>
+                </Button>
+            </div>
+           )}
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
@@ -532,6 +552,12 @@ export default function EmpathAIClient() {
               <h1 className="text-xl font-bold font-headline">CounselAI</h1>
             </div>
             <div className="flex items-center gap-2">
+               {isSignedIn && (
+                <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}>
+                    <Settings className="h-5 w-5" />
+                    <span className="sr-only">Settings</span>
+                </Button>
+              )}
             </div>
           </header>
 

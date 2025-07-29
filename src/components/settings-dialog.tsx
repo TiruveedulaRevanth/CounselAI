@@ -18,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
 import { therapyStyles } from "./empath-ai-client";
 import { Input } from "./ui/input";
 import { useForm } from "react-hook-form";
@@ -36,9 +35,12 @@ interface SettingsDialogProps {
   isSignUpOpen: boolean;
   setIsSignUpOpen: (isOpen: boolean) => void;
   onSignUpSuccess: () => void;
+  isSettingsOpen: boolean;
+  setIsSettingsOpen: (isOpen: boolean) => void;
 }
 
 const formSchema = z.object({
+    name: z.string().min(2, "Name must be at least 2 characters"),
     email: z.string().email("Invalid email address").refine(val => val.endsWith('@gmail.com'), {
         message: "Only Gmail addresses are allowed",
     }),
@@ -58,11 +60,14 @@ export default function SettingsDialog({
   isSignUpOpen,
   setIsSignUpOpen,
   onSignUpSuccess,
+  isSettingsOpen,
+  setIsSettingsOpen,
 }: SettingsDialogProps) {
   const { toast } = useToast();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      name: "",
       email: "",
       phone: "",
       password: "",
@@ -90,64 +95,133 @@ export default function SettingsDialog({
     }
   };
 
+  if (isSignUpOpen) {
+    return (
+        <Dialog open={isSignUpOpen} onOpenChange={setIsSignUpOpen}>
+        <DialogContent className="sm:max-w-[425px]" hideCloseButton={true}>
+            <DialogHeader>
+            <DialogTitle>Welcome to CounselAI</DialogTitle>
+            <DialogDescription>
+                Please create an account to get started.
+            </DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
+                    <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                            <FormItem className="grid grid-cols-4 items-center gap-4">
+                                <FormLabel className="text-right">Name</FormLabel>
+                                <FormControl className="col-span-3">
+                                    <Input placeholder="Your Name" {...field} />
+                                </FormControl>
+                                <FormMessage className="col-span-4 text-right" />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                            <FormItem className="grid grid-cols-4 items-center gap-4">
+                                <FormLabel className="text-right">Email</FormLabel>
+                                <FormControl className="col-span-3">
+                                    <Input placeholder="user@gmail.com" {...field} />
+                                </FormControl>
+                                <FormMessage className="col-span-4 text-right" />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="phone"
+                        render={({ field }) => (
+                            <FormItem className="grid grid-cols-4 items-center gap-4">
+                                <FormLabel className="text-right">Phone</FormLabel>
+                                <FormControl className="col-span-3">
+                                    <Input placeholder="10-digit number" {...field} />
+                                </FormControl>
+                                <FormMessage className="col-span-4 text-right" />
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                            <FormItem className="grid grid-cols-4 items-center gap-4">
+                                <FormLabel className="text-right">Password</FormLabel>
+                                <FormControl className="col-span-3">
+                                    <Input type="password" {...field} />
+                                </FormControl>
+                                <FormMessage className="col-span-4 text-right" />
+                            </FormItem>
+                        )}
+                    />
+                    
+                    <DialogFooter>
+                        <Button type="submit">Sign Up</Button>
+                    </DialogFooter>
+                </form>
+            </Form>
+        </DialogContent>
+        </Dialog>
+    );
+  }
     
   return (
-    <Dialog open={isSignUpOpen} onOpenChange={setIsSignUpOpen}>
-      <DialogContent className="sm:max-w-[425px]" hideCloseButton={true}>
+    <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Welcome to CounselAI</DialogTitle>
+          <DialogTitle>Settings</DialogTitle>
           <DialogDescription>
-            Please create an account to get started.
+            Manage your app preferences here.
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
-                 <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                        <FormItem className="grid grid-cols-4 items-center gap-4">
-                            <FormLabel className="text-right">Email</FormLabel>
-                            <FormControl className="col-span-3">
-                                <Input placeholder="user@gmail.com" {...field} />
-                            </FormControl>
-                            <FormMessage className="col-span-4 text-right" />
-                        </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                        <FormItem className="grid grid-cols-4 items-center gap-4">
-                            <FormLabel className="text-right">Phone</FormLabel>
-                            <FormControl className="col-span-3">
-                                <Input placeholder="10-digit number" {...field} />
-                            </FormControl>
-                            <FormMessage className="col-span-4 text-right" />
-                        </FormItem>
-                    )}
-                />
-
-                 <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                        <FormItem className="grid grid-cols-4 items-center gap-4">
-                            <FormLabel className="text-right">Password</FormLabel>
-                            <FormControl className="col-span-3">
-                                <Input type="password" {...field} />
-                            </FormControl>
-                            <FormMessage className="col-span-4 text-right" />
-                        </FormItem>
-                    )}
-                />
-                
-                <DialogFooter>
-                    <Button type="submit">Sign Up</Button>
-                </DialogFooter>
-            </form>
-        </Form>
+        <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="voice-select" className="text-right">
+                Voice
+            </Label>
+            <Select
+                value={selectedVoice?.name}
+                onValueChange={handleVoiceChange}
+            >
+                <SelectTrigger id="voice-select" className="col-span-3">
+                <SelectValue placeholder="Select a voice" />
+                </SelectTrigger>
+                <SelectContent>
+                {voices.map((voice) => (
+                    <SelectItem key={voice.name} value={voice.name}>
+                    {voice.name}
+                    </SelectItem>
+                ))}
+                </SelectContent>
+            </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="therapy-style-select" className="text-right">
+                Therapy Style
+            </Label>
+            <Select
+                value={therapyStyle}
+                onValueChange={handleTherapyStyleChange}
+            >
+                <SelectTrigger id="therapy-style-select" className="col-span-3">
+                <SelectValue placeholder="Select a style" />
+                </SelectTrigger>
+                <SelectContent>
+                {therapyStyles.map((style) => (
+                    <SelectItem key={style.name} value={style.prompt}>
+                    {style.name}
+                    </SelectItem>
+                ))}
+                </SelectContent>
+            </Select>
+            </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
