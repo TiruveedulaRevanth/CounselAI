@@ -3,7 +3,6 @@
 import { personalizeTherapyStyle } from "@/ai/flows/therapy-style-personalization";
 import { summarizeChat } from "@/ai/flows/summarize-chat-flow";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { BrainCircuit, Mic, Plus, Send, Square, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
@@ -25,7 +24,7 @@ import {
   SidebarGroupLabel,
   SidebarMenuAction,
 } from "./ui/sidebar";
-import { formatDistanceToNow, isToday, isYesterday, isAfter, subDays } from 'date-fns';
+import { subDays, isToday, isYesterday, isAfter } from 'date-fns';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -121,9 +120,7 @@ export default function EmpathAIClient() {
       if (savedChats) {
         const parsedChats = JSON.parse(savedChats) as Chat[];
         if (Array.isArray(parsedChats) && parsedChats.length > 0) {
-          // Add createdAt field to old chats if it's missing
            const updatedChats = parsedChats.map(chat => ({...chat, createdAt: chat.createdAt || new Date().toISOString()}));
-           // Sort chats by date, newest first
            updatedChats.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
           setChats(updatedChats);
           setActiveChatId(updatedChats[0].id);
@@ -154,7 +151,7 @@ export default function EmpathAIClient() {
       id: `chat-${Date.now()}`,
       name: "New Chat",
       createdAt: new Date().toISOString(),
-      messages: [initialMessage],
+      messages: [],
     };
     setChats(prev => [newChat, ...prev]);
     setActiveChatId(newChat.id);
@@ -171,16 +168,11 @@ export default function EmpathAIClient() {
             } else {
                 const newId = createNewChat();
                 setActiveChatId(newId);
-                // This is a bit tricky, we need to return the *new* chats array.
-                // Since createNewChat already updated the state, we can't just return remainingChats.
-                // So we'll find the newly created chat from the state that createNewChat produced.
-                // A better way might be to have createNewChat return the new array.
-                // For now, let's just create it again.
                 return [{
                   id: newId,
                   name: "New Chat",
                   createdAt: new Date().toISOString(),
-                  messages: [initialMessage],
+                  messages: [],
                 }];
             }
         }
@@ -235,22 +227,14 @@ export default function EmpathAIClient() {
         }
       };
       
-      // Voices are loaded asynchronously. We need to check for them periodically.
       window.speechSynthesis.onvoiceschanged = loadVoices;
       loadVoices();
       
-      if (!hasSpokenInitialMessage.current && activeChat?.messages.length === 1) {
-         setTimeout(() => {
-          speakText(activeChat.messages[0].content);
-          hasSpokenInitialMessage.current = true;
-        }, 500); 
-      }
-
       return () => {
         window.speechSynthesis.onvoiceschanged = null;
       }
     }
-  }, [activeChat, selectedVoice, speakText]);
+  }, [selectedVoice]);
 
   useEffect(() => {
     if ("SpeechRecognition" in window || "webkitSpeechRecognition" in window) {
@@ -274,7 +258,9 @@ export default function EmpathAIClient() {
       };
       
       recognition.onend = () => {
-        setIsListening(false);
+        if (isListening) {
+          setIsListening(false);
+        }
       };
       
       recognition.onerror = (event: any) => {
@@ -297,7 +283,7 @@ export default function EmpathAIClient() {
 
       speechRecognition.current = recognition;
     }
-  }, [toast]);
+  }, [toast, isListening]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -310,12 +296,17 @@ export default function EmpathAIClient() {
     } else {
        setUserInput("");
        speechRecognition.current?.start();
+       setIsListening(true);
     }
-    setIsListening(!isListening);
   };
 
   const handleSend = async (text: string) => {
     if (!text.trim() || isLoading) return;
+
+    let currentMessages: Message[] = [];
+    if (activeChat && activeChat.messages.length === 0) {
+      currentMessages = [initialMessage];
+    }
 
     const newUserMessage: Message = {
       id: Date.now().toString(),
@@ -323,10 +314,9 @@ export default function EmpathAIClient() {
       content: text,
     };
     
-    updateMessages((prev) => [...prev, newUserMessage]);
+    updateMessages((prev) => [...currentMessages, ...prev, newUserMessage]);
     
-    // Update chat name if it's the first user message
-    if (activeChat && activeChat.messages.length === 1 && activeChat.name === "New Chat") { 
+    if (activeChat && activeChat.messages.length === 0 && activeChat.name === "New Chat") { 
       try {
         const { title } = await summarizeChat({ message: text });
         setChats(prev => prev.map(chat => chat.id === activeChatId ? {...chat, name: title} : chat));
@@ -335,7 +325,6 @@ export default function EmpathAIClient() {
           setChats(prev => prev.map(chat => chat.id === activeChatId ? {...chat, name: text.substring(0, 40)} : chat));
       }
     }
-
 
     setUserInput("");
     setIsLoading(true);
@@ -346,7 +335,6 @@ export default function EmpathAIClient() {
       setIsListening(false);
     }
     
-
     try {
       const result = await personalizeTherapyStyle({
         therapyStyle: therapyStyle,
@@ -380,10 +368,6 @@ export default function EmpathAIClient() {
       updateMessages((prev) => [...prev, assistantErrorMessage]);
     } finally {
       setIsLoading(false);
-      // Ensure recognition can start again after sending
-      if (isListening) {
-          speechRecognition.current?.start();
-      }
     }
   };
   
@@ -434,7 +418,7 @@ export default function EmpathAIClient() {
           <div className="flex items-center justify-between">
              <div className="flex items-center gap-2">
                 <BrainCircuit className="h-8 w-8 text-primary" />
-                <h1 className="text-2xl font-bold font-headline">CounselAI</h1>
+                <h1 className="text-xl font-bold font-headline">CounselAI</h1>
               </div>
               <Button variant="ghost" size="icon" onClick={() => createNewChat()}>
                   <Plus className="h-6 w-6"/>
@@ -499,15 +483,14 @@ export default function EmpathAIClient() {
           <header className="flex md:hidden items-center justify-between p-4 border-b">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
-              <h1 className="text-2xl font-bold font-headline">CounselAI</h1>
+              <h1 className="text-xl font-bold font-headline">CounselAI</h1>
             </div>
           </header>
 
-          <main className="flex-1 flex flex-col p-4 md:p-6 min-h-0">
-            <Card className="flex-1 flex flex-col shadow-lg">
-              <CardContent className="flex-1 p-2 md:p-4 flex">
+          <main className="flex-1 flex flex-col min-h-0">
+             {activeChat && activeChat.messages.length > 0 ? (
                 <ScrollArea className="flex-1 h-full">
-                  <div className="space-y-4 pr-4">
+                  <div className="space-y-6 p-4 md:p-6 lg:p-8 max-w-4xl mx-auto w-full">
                     {activeChat?.messages.map((msg) => (
                       <ChatMessage key={msg.id} message={msg} />
                     ))}
@@ -518,53 +501,60 @@ export default function EmpathAIClient() {
                     <div ref={messagesEndRef} />
                   </div>
                 </ScrollArea>
-              </CardContent>
-            </Card>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-center">
+                    <BrainCircuit className="w-16 h-16 text-primary mb-4"/>
+                    <h2 className="text-2xl font-bold">Ready when you are.</h2>
+                </div>
+              )}
           </main>
 
-          <footer className="p-4 border-t">
-            <div className="flex items-start gap-2 max-w-2xl mx-auto">
+          <footer className="p-4 w-full">
+            <div className="relative flex items-center gap-2 max-w-2xl mx-auto">
               <Textarea
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Type your message or use the microphone..."
-                className="flex-1 resize-none rounded-2xl"
+                placeholder="Ask anything..."
+                className="flex-1 resize-none rounded-2xl border-2 bg-secondary text-base pr-20 pl-4 py-3"
                 rows={1}
                 disabled={isLoading || !activeChatId}
               />
-              {isSpeaking ? (
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                 {isSpeaking ? (
+                    <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-10 w-10 shrink-0 rounded-full"
+                    onClick={handleStopSpeaking}
+                    >
+                    <Square className="h-5 w-5" />
+                    </Button>
+                ) : (
+                    <Button
+                    size="icon"
+                    variant="ghost"
+                    className={`h-10 w-10 shrink-0 rounded-full ${
+                        isListening ? "text-red-500" : ""
+                    }`}
+                    onClick={handleMicClick}
+                    disabled={isLoading || !activeChatId}
+                    >
+                    <Mic className="h-5 w-5" />
+                    </Button>
+                )}
                 <Button
-                  size="icon"
-                  variant="destructive"
-                  className="h-10 w-10 shrink-0 rounded-full"
-                  onClick={handleStopSpeaking}
+                    size="icon"
+                    onClick={() => handleSend(userInput)}
+                    disabled={!userInput.trim() || isLoading || !activeChatId}
+                    className="h-10 w-10 shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-gray-600"
                 >
-                  <Square className="h-5 w-5" />
+                    <Send className="h-5 w-5" />
                 </Button>
-              ) : (
-                <Button
-                  size="icon"
-                  className={`h-10 w-10 shrink-0 rounded-full ${
-                    isListening ? "bg-destructive" : "bg-primary"
-                  } hover:bg-primary/90`}
-                  onClick={handleMicClick}
-                  disabled={isLoading || !activeChatId}
-                >
-                  <Mic className="h-5 w-5" />
-                </Button>
-              )}
-              <Button
-                size="icon"
-                onClick={() => handleSend(userInput)}
-                disabled={!userInput.trim() || isLoading || !activeChatId}
-                className="h-10 w-10 shrink-0 rounded-full"
-              >
-                <Send className="h-5 w-5" />
-              </Button>
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground text-center mt-2 h-4">
-                {isListening ? "Listening... Click mic again to send." : isSpeaking ? "Speaking..." : isLoading ? "" : activeChatId ? "Press Enter to send. Use Shift+Enter for a new line." : "Create a new chat to begin."}
+            <p className="text-xs text-muted-foreground text-center mt-2 h-4">
+                {isListening ? "Listening... Press mic again to stop." : isSpeaking ? "Speaking..." : isLoading ? "Thinking..." : activeChatId ? "CounselAI can make mistakes. Consider checking important information." : "Create a new chat to begin."}
             </p>
           </footer>
         </div>

@@ -16,54 +16,41 @@ export default function ChatMessage({ message, isInterim = false }: ChatMessageP
   return (
     <div
       className={cn(
-        "flex items-start gap-4",
-        isAssistant ? "justify-start" : "justify-end"
+        "flex items-start gap-4 w-full",
+        isInterim && "opacity-60"
       )}
     >
-      {isAssistant && (
-        <Avatar className="h-10 w-10">
-          <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-primary-foreground">
-            <Bot size={24} />
+      <Avatar className="h-8 w-8">
+          <AvatarFallback className={cn(isAssistant ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground")}>
+            {isAssistant ? <Bot size={20} /> : <User size={20} />}
           </AvatarFallback>
         </Avatar>
-      )}
-      <div
-        className={cn(
-          "max-w-md md:max-w-lg lg:max-w-xl px-5 py-3 shadow-lg transition-all",
-          isAssistant
-            ? "bg-gradient-to-br from-card to-muted rounded-3xl rounded-bl-lg"
-            : "bg-gradient-to-br from-primary to-accent text-primary-foreground rounded-3xl rounded-br-lg",
-          isInterim && "opacity-60"
-        )}
-      >
-        <p className="text-base leading-relaxed whitespace-pre-wrap">{message.content}</p>
+      <div className="flex-1">
+        <p className="font-bold mb-1">{isAssistant ? "CounselAI" : "You"}</p>
+        <div className="text-base leading-relaxed whitespace-pre-wrap">
+            {message.content}
+        </div>
       </div>
-      {!isAssistant && (
-        <Avatar className="h-10 w-10">
-          <AvatarFallback className="bg-secondary text-secondary-foreground">
-            <User size={24} />
-          </AvatarFallback>
-        </Avatar>
-      )}
     </div>
   );
 }
 
 const Loading = () => (
-  <div className="flex items-start gap-4 justify-start">
-    <Avatar className="h-10 w-10">
-      <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-primary-foreground">
-        <Bot size={24} />
-      </AvatarFallback>
-    </Avatar>
-    <div className="max-w-sm md:max-w-md lg:max-w-lg px-4 py-2.5 rounded-3xl rounded-bl-lg shadow-lg bg-gradient-to-br from-card to-muted">
-      <div className="flex items-center gap-1.5 py-2">
-        <span className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse" style={{animationDelay: '0ms'}}/>
-        <span className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse" style={{animationDelay: '200ms'}}/>
-        <span className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse" style={{animationDelay: '400ms'}}/>
-      </div>
+    <div className="flex items-start gap-4 w-full">
+        <Avatar className="h-8 w-8">
+            <AvatarFallback className="bg-primary text-primary-foreground">
+                <Bot size={20} />
+            </AvatarFallback>
+        </Avatar>
+        <div className="flex-1">
+            <p className="font-bold mb-1">CounselAI</p>
+            <div className="flex items-center gap-1.5 py-2">
+                <span className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse" style={{ animationDelay: '0ms' }} />
+                <span className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse" style={{ animationDelay: '200ms' }} />
+                <span className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse" style={{ animationDelay: '400ms' }} />
+            </div>
+        </div>
     </div>
-  </div>
 );
 
 ChatMessage.Loading = Loading;
