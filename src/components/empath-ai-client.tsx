@@ -529,7 +529,7 @@ export default function EmpathAIClient() {
                 onChange={(e) => setUserInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Type your message or use the microphone..."
-                className="flex-1 resize-none"
+                className="flex-1 resize-none rounded-2xl"
                 rows={1}
                 disabled={isLoading || !activeChatId}
               />
@@ -537,7 +537,7 @@ export default function EmpathAIClient() {
                 <Button
                   size="icon"
                   variant="destructive"
-                  className="h-10 w-10 shrink-0"
+                  className="h-10 w-10 shrink-0 rounded-full"
                   onClick={handleStopSpeaking}
                 >
                   <Square className="h-5 w-5" />
@@ -545,7 +545,7 @@ export default function EmpathAIClient() {
               ) : (
                 <Button
                   size="icon"
-                  className={`h-10 w-10 shrink-0 ${
+                  className={`h-10 w-10 shrink-0 rounded-full ${
                     isListening ? "bg-destructive" : "bg-primary"
                   } hover:bg-primary/90`}
                   onClick={handleMicClick}
@@ -558,7 +558,7 @@ export default function EmpathAIClient() {
                 size="icon"
                 onClick={() => handleSend(userInput)}
                 disabled={!userInput.trim() || isLoading || !activeChatId}
-                className="h-10 w-10 shrink-0"
+                className="h-10 w-10 shrink-0 rounded-full"
               >
                 <Send className="h-5 w-5" />
               </Button>

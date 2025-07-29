@@ -4,13 +4,32 @@ import {cn} from '@/lib/utils';
 
 const Textarea = React.forwardRef<HTMLTextAreaElement, React.ComponentProps<'textarea'>>(
   ({className, ...props}, ref) => {
+    const [height, setHeight] = React.useState('auto');
+    const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
+    const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+        textareaRef.current.style.height = `${event.target.scrollHeight}px`;
+      }
+      if (props.onChange) {
+        props.onChange(event);
+      }
+    };
+    
+    // Combine refs
+    React.useImperativeHandle(ref, () => textareaRef.current as HTMLTextAreaElement, []);
+
+
     return (
       <textarea
         className={cn(
-          'flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
+          'flex w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none overflow-hidden',
           className
         )}
-        ref={ref}
+        ref={textareaRef}
+        onInput={handleInput}
+        style={{maxHeight: '200px', height}}
         {...props}
       />
     );
