@@ -126,11 +126,19 @@ export default function EmpathAIClient() {
       
       recognition.onerror = (event: any) => {
         console.error("Speech recognition error", event.error);
-        toast({
-          variant: "destructive",
-          title: "Speech Recognition Error",
-          description: event.error,
-        });
+        if (event.error === 'network') {
+            toast({
+              variant: "destructive",
+              title: "Speech Recognition Error",
+              description: "Network error. Please check your connection and try again.",
+            });
+        } else {
+            toast({
+              variant: "destructive",
+              title: "Speech Recognition Error",
+              description: event.error,
+            });
+        }
         setIsListening(false);
       };
 
