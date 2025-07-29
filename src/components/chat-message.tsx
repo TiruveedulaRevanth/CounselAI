@@ -21,7 +21,7 @@ export default function ChatMessage({ message, isInterim = false }: ChatMessageP
       )}
     >
       <Avatar className="h-8 w-8">
-          <AvatarFallback className={cn(isAssistant ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground")}>
+          <AvatarFallback className={cn(isAssistant ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground")}>
             {isAssistant ? <Bot size={20} /> : <User size={20} />}
           </AvatarFallback>
         </Avatar>
