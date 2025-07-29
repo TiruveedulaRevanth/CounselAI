@@ -43,8 +43,8 @@ body {
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-ring: 122 47% 49%;
     
-    --user-bubble: 130 90% 90%; /* light green */
-    --assistant-bubble: 210 100% 75%; /* dark blue */
+    --user-bubble: 120 81% 40%; /* vibrant green */
+    --assistant-bubble: 206 100% 50%; /* vibrant blue */
   }
   .dark {
     --background: 228 9% 17%;
@@ -76,8 +76,8 @@ body {
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-ring: 215 20% 65%;
 
-    --user-bubble: 130 90% 90%;
-    --assistant-bubble: 210 100% 75%;
+    --user-bubble: 120 81% 40%;
+    --assistant-bubble: 206 100% 50%;
   }
 }
 
