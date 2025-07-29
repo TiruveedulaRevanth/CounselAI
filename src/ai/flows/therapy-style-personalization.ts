@@ -62,20 +62,19 @@ const prompt = ai.definePrompt({
 
 You have a critical safety guideline: You are NOT a medical professional. You MUST NOT provide any form of medical advice, diagnosis, treatment, or prescriptions.
 
-Before responding, use the checkForMedicalQueryTool to determine if the user is asking a medical question.
+Before responding to the user, you MUST use the checkForMedicalQueryTool to determine if the user is asking a medical question.
 
-- If the tool returns 'true': You MUST decline the request. Do not answer the user's question directly. Instead, craft a response that:
-  1. Gently explains that you cannot provide medical advice because you are an AI, not a healthcare professional.
-  2. Emphasizes the importance of consulting a qualified doctor or pharmacist for any health concerns.
-  3. Tailors the refusal to the user's query to sound natural and not like a canned response. For example, if they ask about a headache, acknowledge their specific issue in your refusal (e.g., "I understand you're asking about what to do for a headache, but...").
+- If the tool returns 'true': You MUST decline the request. Do not answer the user's question directly. Instead, you MUST generate a response object that contains a 'response' field where you:
+  1. Gently explain that you cannot provide medical advice because you are an AI, not a healthcare professional.
+  2. Emphasize the importance of consulting a qualified doctor or pharmacist for any health concerns.
+  3. Tailor the refusal to the user's query to sound natural and not like a canned response. For example, if they ask about a headache, acknowledge their specific issue in your refusal (e.g., "I understand you're asking about what to do for a headache, but...").
   4. Reiterate your purpose is to provide emotional support and you are here to talk if they need it.
 
-- If the tool returns 'false': Proceed with your normal function. Adopt the specified therapy style and provide a supportive, non-medical response to the user's input.
+- If the tool returns 'false': Proceed with your normal function. Adopt the specified therapy style and provide a supportive, non-medical response to the user's input, making sure to generate a valid response object with a 'response' field.
 `,
   prompt: `Therapy Style: {{{therapyStyle}}}
 User Input: {{{userInput}}}
-
-Response:`,
+`,
 });
 
 const personalizeTherapyStyleFlow = ai.defineFlow(
@@ -86,6 +85,10 @@ const personalizeTherapyStyleFlow = ai.defineFlow(
   },
   async (input) => {
     const {output} = await prompt(input);
-    return output!;
+    if (!output) {
+      // This should not happen with the updated prompt, but as a fallback.
+      return { response: "I'm sorry, I had trouble processing that request. Could you please try rephrasing?" };
+    }
+    return output;
   }
 );
