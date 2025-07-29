@@ -1,11 +1,12 @@
 "use client";
 
 import { personalizeTherapyStyle } from "@/ai/flows/therapy-style-personalization";
+import { summarizeChat } from "@/ai/flows/summarize-chat-flow";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { BrainCircuit, Mic, Plus, Send, Square } from "lucide-react";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import ChatMessage from "./chat-message";
 import SettingsDialog from "./settings-dialog";
 import { Textarea } from "./ui/textarea";
@@ -20,7 +21,12 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
+  SidebarSeparator,
+  SidebarGroup,
+  SidebarGroupLabel,
 } from "./ui/sidebar";
+import { formatDistanceToNow, isToday, isYesterday, isAfter, subDays } from 'date-fns';
+
 
 declare global {
   interface Window {
@@ -38,6 +44,7 @@ export type Message = {
 export type Chat = {
   id: string;
   name: string;
+  createdAt: string;
   messages: Message[];
 };
 
@@ -101,10 +108,14 @@ export default function EmpathAIClient() {
     try {
       const savedChats = localStorage.getItem("counselai-chats");
       if (savedChats) {
-        const parsedChats = JSON.parse(savedChats);
+        const parsedChats = JSON.parse(savedChats) as Chat[];
         if (Array.isArray(parsedChats) && parsedChats.length > 0) {
-          setChats(parsedChats);
-          setActiveChatId(parsedChats[0].id);
+          // Add createdAt field to old chats if it's missing
+           const updatedChats = parsedChats.map(chat => ({...chat, createdAt: chat.createdAt || new Date().toISOString()}));
+           // Sort chats by date, newest first
+           updatedChats.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          setChats(updatedChats);
+          setActiveChatId(updatedChats[0].id);
         } else {
           createNewChat();
         }
@@ -129,6 +140,7 @@ export default function EmpathAIClient() {
     const newChat: Chat = {
       id: `chat-${Date.now()}`,
       name: "New Chat",
+      createdAt: new Date().toISOString(),
       messages: [initialMessage],
     };
     setChats(prev => [newChat, ...prev]);
@@ -249,10 +261,8 @@ export default function EmpathAIClient() {
     handleStopSpeaking();
     if (isListening) {
       speechRecognition.current?.stop();
-      if(userInput.trim()) {
-        handleSend(userInput);
-      }
     } else {
+       setUserInput("");
       speechRecognition.current?.start();
     }
     setIsListening(!isListening);
@@ -270,17 +280,25 @@ export default function EmpathAIClient() {
     updateMessages((prev) => [...prev, newUserMessage]);
     
     // Update chat name if it's the first user message
-    if (activeChat && activeChat.messages.length === 1) { // 1 because it includes initial message
-       setChats(prev => prev.map(chat => chat.id === activeChatId ? {...chat, name: text.substring(0, 30)} : chat))
+    if (activeChat && activeChat.messages.length === 2) { // 2 because it includes initial assistant message
+        try {
+          const { title } = await summarizeChat({ message: text });
+          setChats(prev => prev.map(chat => chat.id === activeChatId ? {...chat, name: title} : chat));
+        } catch (e) {
+            console.error("Failed to summarize chat title, using default.", e);
+            setChats(prev => prev.map(chat => chat.id === activeChatId ? {...chat, name: text.substring(0, 40)} : chat));
+        }
     }
 
     setUserInput("");
     setIsLoading(true);
     handleStopSpeaking();
-    setIsListening(false);
-    if(speechRecognition.current) {
-        speechRecognition.current.stop();
+    
+    if (isListening) {
+      speechRecognition.current?.stop();
+      setIsListening(false);
     }
+    
 
     try {
       const result = await personalizeTherapyStyle({
@@ -325,6 +343,37 @@ export default function EmpathAIClient() {
     }
   }
 
+  const groupedChats = useMemo(() => {
+    const groups: { [key: string]: Chat[] } = {
+      Today: [],
+      Yesterday: [],
+      'Previous 7 Days': [],
+      'This Month': [],
+    };
+    const older: Chat[] = [];
+    const now = new Date();
+    const sevenDaysAgo = subDays(now, 7);
+
+    chats.forEach(chat => {
+      const chatDate = new Date(chat.createdAt);
+      if (isToday(chatDate)) {
+        groups.Today.push(chat);
+      } else if (isYesterday(chatDate)) {
+        groups.Yesterday.push(chat);
+      } else if (isAfter(chatDate, sevenDaysAgo)) {
+        groups['Previous 7 Days'].push(chat);
+      } else {
+        const month = chatDate.toLocaleString('default', { month: 'long' });
+        if (!groups[month]) {
+          groups[month] = [];
+        }
+        groups[month].push(chat);
+      }
+    });
+
+    return Object.entries(groups).filter(([, chats]) => chats.length > 0);
+  }, [chats]);
+
   return (
     <>
       <Sidebar>
@@ -341,19 +390,24 @@ export default function EmpathAIClient() {
           </div>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarMenu>
-            {chats.map(chat => (
-               <SidebarMenuItem key={chat.id}>
-                 <SidebarMenuButton 
-                  onClick={() => setActiveChatId(chat.id)}
-                  isActive={chat.id === activeChatId}
-                  className="truncate"
-                 >
-                   {chat.name}
-                 </SidebarMenuButton>
-               </SidebarMenuItem>
+            {groupedChats.map(([groupName, groupChats]) => (
+                <SidebarGroup key={groupName}>
+                    <SidebarGroupLabel>{groupName}</SidebarGroupLabel>
+                    <SidebarMenu>
+                    {groupChats.map(chat => (
+                        <SidebarMenuItem key={chat.id}>
+                            <SidebarMenuButton 
+                            onClick={() => setActiveChatId(chat.id)}
+                            isActive={chat.id === activeChatId}
+                            className="truncate"
+                            >
+                            {chat.name}
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    ))}
+                    </SidebarMenu>
+                </SidebarGroup>
             ))}
-          </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
             <SettingsDialog
@@ -402,7 +456,7 @@ export default function EmpathAIClient() {
                 placeholder="Type your message or use the microphone..."
                 className="flex-1 resize-none"
                 rows={1}
-                disabled={isLoading || isListening || !activeChatId}
+                disabled={isLoading || !activeChatId}
               />
               {isSpeaking ? (
                 <Button
@@ -435,7 +489,7 @@ export default function EmpathAIClient() {
               </Button>
             </div>
             <p className="text-sm text-muted-foreground text-center mt-2 h-4">
-                {isListening ? "Listening... Click the mic to send." : isSpeaking ? "Speaking..." : isLoading ? "" : activeChatId ? "Press Enter to send. Use Shift+Enter for a new line." : "Create a new chat to begin."}
+                {isListening ? "Listening... Click mic again to send." : isSpeaking ? "Speaking..." : isLoading ? "" : activeChatId ? "Press Enter to send. Use Shift+Enter for a new line." : "Create a new chat to begin."}
             </p>
           </footer>
         </div>
