@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'EmpathAI',
+  title: 'CounselAI',
   description: 'Your personal AI assistant for mental health counseling.',
 };
 

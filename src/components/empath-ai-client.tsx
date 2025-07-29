@@ -31,7 +31,7 @@ export default function EmpathAIClient() {
       id: "1",
       role: "assistant",
       content:
-        "Hello! I'm EmpathAI, your personal mental health assistant. I'm here to listen and support you. You can type a message or tap the microphone to begin.",
+        "Hello! I'm CounselAI, your personal mental health assistant. I'm here to listen and support you. You can type a message or tap the microphone to begin.",
     },
   ]);
   const [isListening, setIsListening] = useState(false);
@@ -194,7 +194,7 @@ export default function EmpathAIClient() {
       <header className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-2">
           <BrainCircuit className="h-8 w-8 text-primary" />
-          <h1 className="text-2xl font-bold font-headline">EmpathAI</h1>
+          <h1 className="text-2xl font-bold font-headline">CounselAI</h1>
         </div>
         <SettingsDialog
           voices={voices}

@@ -54,7 +54,7 @@ export default function SettingsDialog({
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
           <DialogDescription>
-            Customize your EmpathAI experience.
+            Customize your CounselAI experience.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
