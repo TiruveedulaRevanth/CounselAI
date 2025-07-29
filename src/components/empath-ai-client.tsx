@@ -24,6 +24,35 @@ export type Message = {
   content: string;
 };
 
+export const therapyStyles = [
+  {
+    name: "Empathetic Friend",
+    prompt:
+      "An empathetic, supportive, and non-judgmental friend who listens carefully and responds in a calm, reassuring tone. Adapt to the user's emotional state.",
+  },
+  {
+    name: "Mindfulness Coach",
+    prompt:
+      "A mindfulness coach who helps the user stay present and grounded. Use techniques from Mindfulness-Based Stress Reduction (MBSR) and provide guided exercises.",
+  },
+  {
+    name: "Cognitive Behavioral (CBT)",
+    prompt:
+      "A therapist using Cognitive Behavioral Therapy (CBT) techniques. Help the user identify and challenge negative thought patterns and develop healthier coping strategies.",
+  },
+  {
+    name: "Solution-Focused",
+    prompt:
+      "A solution-focused therapist who concentrates on the user's strengths and helps them build solutions rather than dwelling on problems. Focus on future possibilities.",
+  },
+  {
+    name: "Narrative Therapist",
+    prompt:
+      "A narrative therapist who helps the user re-author their life stories. Focus on separating the person from the problem and empowering them to see their life from a new perspective.",
+  },
+];
+
+
 export default function EmpathAIClient() {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([
@@ -42,9 +71,7 @@ export default function EmpathAIClient() {
   // Settings state
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
-  const [therapyStyle, setTherapyStyle] = useState(
-    "An empathetic, supportive, and non-judgmental friend who listens carefully and responds in a calm, reassuring tone. Adapt to the user's emotional state."
-  );
+  const [therapyStyle, setTherapyStyle] = useState(therapyStyles[0].prompt);
 
   const speechRecognition = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);

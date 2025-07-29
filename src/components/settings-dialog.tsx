@@ -18,9 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Settings } from "lucide-react";
 import { useState } from "react";
+import { therapyStyles } from "./empath-ai-client";
 
 interface SettingsDialogProps {
   voices: SpeechSynthesisVoice[];
@@ -42,6 +42,13 @@ export default function SettingsDialog({
   const handleVoiceChange = (value: string) => {
     const voice = voices.find(v => v.name === value) || null;
     setSelectedVoice(voice);
+  };
+
+  const handleTherapyStyleChange = (value: string) => {
+    const style = therapyStyles.find(s => s.prompt === value);
+    if (style) {
+      setTherapyStyle(style.prompt);
+    }
   };
     
   return (
@@ -80,18 +87,25 @@ export default function SettingsDialog({
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-4 items-start gap-4">
-            <Label htmlFor="therapy-style" className="text-right pt-2">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="therapy-style" className="text-right">
               Therapy Style
             </Label>
-            <Textarea
-              id="therapy-style"
+            <Select
+              onValueChange={handleTherapyStyleChange}
               value={therapyStyle}
-              onChange={(e) => setTherapyStyle(e.target.value)}
-              className="col-span-3"
-              rows={5}
-              placeholder="Describe the AI's personality and approach..."
-            />
+            >
+              <SelectTrigger id="therapy-style" className="col-span-3">
+                <SelectValue placeholder="Select a style" />
+              </SelectTrigger>
+              <SelectContent>
+                {therapyStyles.map((style) => (
+                  <SelectItem key={style.name} value={style.prompt}>
+                    {style.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <DialogFooter>
