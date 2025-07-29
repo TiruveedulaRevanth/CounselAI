@@ -17,23 +17,33 @@ export default function ChatMessage({ message, isInterim = false }: ChatMessageP
     <div
       className={cn(
         "flex items-start gap-4 w-full",
+        !isAssistant && "justify-end",
         isInterim && "opacity-60"
       )}
     >
-      <Avatar className="h-8 w-8">
-          <AvatarFallback className={cn(isAssistant ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground")}>
-            {isAssistant ? <Bot size={20} /> : <User size={20} />}
-          </AvatarFallback>
+      {isAssistant && (
+         <Avatar className="h-8 w-8">
+            <AvatarFallback className="bg-primary text-primary-foreground">
+                <Bot size={20} />
+            </AvatarFallback>
         </Avatar>
-      <div className="flex-1">
+      )}
+      <div className={cn("flex flex-col", isAssistant ? "items-start" : "items-end")}>
         <p className="font-bold mb-1">{isAssistant ? "CounselAI" : "You"}</p>
         <div className={cn(
-            "p-3 rounded-lg text-base leading-relaxed whitespace-pre-wrap",
+            "p-3 rounded-lg text-base leading-relaxed whitespace-pre-wrap max-w-md md:max-w-lg lg:max-w-xl",
             isAssistant ? "bg-assistant-bubble text-white" : "bg-user-bubble text-white"
         )}>
             {message.content}
         </div>
       </div>
+       {!isAssistant && (
+         <Avatar className="h-8 w-8">
+            <AvatarFallback className="bg-destructive text-destructive-foreground">
+                <User size={20} />
+            </AvatarFallback>
+        </Avatar>
+      )}
     </div>
   );
 }
