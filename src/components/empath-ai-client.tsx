@@ -292,36 +292,48 @@ export default function EmpathAIClient() {
   const handleSend = async (text: string) => {
     if (!text.trim() || isLoading || !activeChatId) return;
 
-    const isFirstMessage = activeChat && activeChat.messages.length === 0;
-    
+    const currentChat = chats.find(c => c.id === activeChatId);
+    if (!currentChat) return;
+
+    const isFirstMessage = currentChat.messages.length === 0;
+
     const newUserMessage: Message = {
       id: Date.now().toString(),
       role: "user",
       content: text,
     };
-    
-    // Immediately update the messages to include the user's new message
-    updateMessages((prev) => [...prev, newUserMessage]);
+
+    // Create a new state for chats with the user's message added
+    const newChatsWithMessage = chats.map(chat =>
+      chat.id === activeChatId
+        ? { ...chat, messages: [...chat.messages, newUserMessage] }
+        : chat
+    );
+
+    setChats(newChatsWithMessage);
     setUserInput("");
     setIsLoading(true);
-
-    if (isFirstMessage) {
-      try {
-        const { title } = await summarizeChat({ message: text });
-        setChats(prev => prev.map(chat => chat.id === activeChatId ? {...chat, name: title} : chat));
-      } catch (e) {
-          console.error("Failed to summarize chat title, using default.", e);
-          // Fallback to using a snippet of the message as title
-          setChats(prev => prev.map(chat => chat.id === activeChatId ? {...chat, name: text.substring(0, 40) + '...'} : chat));
-      }
-    }
     
+    // Stop any speech
     handleStopSpeaking();
     if (isListening) {
       speechRecognition.current?.stop();
       setIsListening(false);
     }
     
+    // Generate title if it's the first message
+    if (isFirstMessage) {
+      try {
+        const { title } = await summarizeChat({ message: text });
+        setChats(prev => prev.map(chat => chat.id === activeChatId ? { ...chat, name: title } : chat));
+      } catch (e) {
+        console.error("Failed to summarize chat title, using default.", e);
+        // Fallback to using a snippet of the message as title
+        setChats(prev => prev.map(chat => chat.id === activeChatId ? { ...chat, name: text.substring(0, 40) + '...' } : chat));
+      }
+    }
+    
+    // Get AI response
     try {
       const result = await personalizeTherapyStyle({
         therapyStyle: therapyStyle,
@@ -334,6 +346,7 @@ export default function EmpathAIClient() {
           role: "assistant",
           content: result.response,
         };
+        // Update messages again with the assistant's response
         updateMessages((prev) => [...prev, newAssistantMessage]);
         speakText(result.response);
       } else {
