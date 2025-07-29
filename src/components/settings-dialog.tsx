@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ interface SettingsDialogProps {
   setSelectedVoice: (voice: SpeechSynthesisVoice | null) => void;
   therapyStyle: string;
   setTherapyStyle: (style: string) => void;
+  children?: React.ReactNode;
 }
 
 export default function SettingsDialog({
@@ -36,6 +38,7 @@ export default function SettingsDialog({
   setSelectedVoice,
   therapyStyle,
   setTherapyStyle,
+  children,
 }: SettingsDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   
@@ -54,10 +57,12 @@ export default function SettingsDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="w-full justify-start gap-2">
-          <Settings className="h-5 w-5" />
-          <span>Settings</span>
-        </Button>
+        {children || (
+          <Button variant="outline" className="w-full justify-start gap-2">
+            <Settings className="h-5 w-5" />
+            <span>Settings</span>
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>

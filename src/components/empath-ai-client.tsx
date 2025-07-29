@@ -5,7 +5,7 @@ import { personalizeTherapyStyle } from "@/ai/flows/therapy-style-personalizatio
 import { summarizeChat } from "@/ai/flows/summarize-chat-flow";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { BrainCircuit, Mic, Plus, Send, Square, Trash2 } from "lucide-react";
+import { BrainCircuit, Mic, Plus, Send, Square, Trash2, Settings } from "lucide-react";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import ChatMessage from "./chat-message";
 import SettingsDialog from "./settings-dialog";
@@ -293,23 +293,23 @@ export default function EmpathAIClient() {
     if (!text.trim() || isLoading || !activeChatId) return;
 
     const currentChatId = activeChatId;
-    const isFirstMessage = chats.find(c => c.id === currentChatId)?.messages.length === 0;
 
     const newUserMessage: Message = {
       id: Date.now().toString(),
       role: "user",
       content: text,
     };
+    
+    const isFirstMessage = (chats.find(c => c.id === currentChatId)?.messages.length ?? 0) === 0;
 
-    // Immediately add user message to the active chat
-    setChats(prevChats =>
-      prevChats.map(chat =>
-        chat.id === currentChatId
-          ? { ...chat, messages: [...chat.messages, newUserMessage] }
-          : chat
-      )
+    // Create a new list of chats with the new user message
+    const newChatsWithUserMessage = chats.map(chat =>
+      chat.id === currentChatId
+        ? { ...chat, messages: [...chat.messages, newUserMessage] }
+        : chat
     );
 
+    setChats(newChatsWithUserMessage);
     setUserInput("");
     setIsLoading(true);
     handleStopSpeaking();
@@ -319,50 +319,55 @@ export default function EmpathAIClient() {
     }
     
     try {
-      // If it's the first message, generate title first
-      if (isFirstMessage) {
-        try {
-            const titleResult = await summarizeChat({ message: text });
-            if (titleResult.title) {
-                setChats(prev =>
+      // Use a separate async function to handle AI interactions
+      const processAI = async () => {
+        // If it's the first message, generate title first
+        if (isFirstMessage) {
+            try {
+                const titleResult = await summarizeChat({ message: text });
+                if (titleResult.title) {
+                    setChats(prev =>
+                        prev.map(chat =>
+                            chat.id === currentChatId ? { ...chat, name: titleResult.title } : chat
+                        )
+                    );
+                }
+            } catch (titleError) {
+                 console.error("Failed to summarize chat title, using default.", titleError);
+                 setChats(prev =>
                     prev.map(chat =>
-                        chat.id === currentChatId ? { ...chat, name: titleResult.title } : chat
+                        chat.id === currentChatId ? { ...chat, name: text.substring(0, 40) + '...' } : chat
                     )
-                );
+                 );
             }
-        } catch (titleError) {
-             console.error("Failed to summarize chat title, using default.", titleError);
-             setChats(prev =>
-                prev.map(chat =>
-                    chat.id === currentChatId ? { ...chat, name: text.substring(0, 40) + '...' } : chat
-                )
-             );
         }
-      }
 
-      // Then get the AI response
-      const aiResult = await personalizeTherapyStyle({
-        therapyStyle: therapyStyle,
-        userInput: text,
-      });
+        // Then get the AI response
+        const aiResult = await personalizeTherapyStyle({
+            therapyStyle: therapyStyle,
+            userInput: text,
+        });
 
-      if (aiResult.response) {
-        const newAssistantMessage: Message = {
-          id: Date.now().toString() + "-ai",
-          role: "assistant",
-          content: aiResult.response,
-        };
-        setChats(prevChats =>
-          prevChats.map(chat =>
-            chat.id === currentChatId
-              ? { ...chat, messages: [...chat.messages, newAssistantMessage] }
-              : chat
-          )
-        );
-        speakText(aiResult.response);
-      } else {
-        throw new Error("Received an empty response from the AI.");
-      }
+        if (aiResult.response) {
+            const newAssistantMessage: Message = {
+                id: Date.now().toString() + "-ai",
+                role: "assistant",
+                content: aiResult.response,
+            };
+            setChats(prevChats =>
+                prevChats.map(chat =>
+                    chat.id === currentChatId
+                        ? { ...chat, messages: [...chat.messages, newAssistantMessage] }
+                        : chat
+                )
+            );
+            speakText(aiResult.response);
+        } else {
+            throw new Error("Received an empty response from the AI.");
+        }
+      };
+
+      await processAI();
 
     } catch (error) {
       console.error("Error calling AI:", error);
@@ -486,23 +491,28 @@ export default function EmpathAIClient() {
             ))}
         </SidebarContent>
         <SidebarFooter>
-            <div className="p-2">
+        </SidebarFooter>
+      </Sidebar>
+      <SidebarInset>
+        <div className="flex flex-col h-screen bg-background font-body text-foreground">
+          <header className="flex items-center justify-between p-4 border-b">
+            <div className="flex items-center gap-2">
+              <SidebarTrigger />
+              <h1 className="text-xl font-bold font-headline">CounselAI</h1>
+            </div>
+            <div className="flex items-center gap-2">
                 <SettingsDialog
                   voices={voices}
                   selectedVoice={selectedVoice}
                   setSelectedVoice={setSelectedVoice}
                   therapyStyle={therapyStyle}
                   setTherapyStyle={setTherapyStyle}
-                />
-            </div>
-        </SidebarFooter>
-      </Sidebar>
-      <SidebarInset>
-        <div className="flex flex-col h-screen bg-background font-body text-foreground">
-          <header className="flex md:hidden items-center justify-between p-4 border-b">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger />
-              <h1 className="text-xl font-bold font-headline">CounselAI</h1>
+                >
+                  <Button variant="ghost" size="icon">
+                    <Settings className="h-5 w-5" />
+                    <span className="sr-only">Settings</span>
+                  </Button>
+                </SettingsDialog>
             </div>
           </header>
 
