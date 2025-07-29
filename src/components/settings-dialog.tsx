@@ -54,9 +54,9 @@ export default function SettingsDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <Settings className="h-6 w-6" />
-          <span className="sr-only">Settings</span>
+        <Button variant="outline" className="w-full justify-start gap-2">
+          <Settings className="h-5 w-5" />
+          <span>Settings</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">

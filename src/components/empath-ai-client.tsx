@@ -4,12 +4,23 @@ import { personalizeTherapyStyle } from "@/ai/flows/therapy-style-personalizatio
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { BrainCircuit, Mic, Send, Square } from "lucide-react";
+import { BrainCircuit, Mic, Plus, Send, Square } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
 import ChatMessage from "./chat-message";
 import SettingsDialog from "./settings-dialog";
 import { Textarea } from "./ui/textarea";
 import { ScrollArea } from "./ui/scroll-area";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarTrigger,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarFooter,
+} from "./ui/sidebar";
 
 declare global {
   interface Window {
@@ -22,6 +33,12 @@ export type Message = {
   id: string;
   role: "user" | "assistant";
   content: string;
+};
+
+export type Chat = {
+  id: string;
+  name: string;
+  messages: Message[];
 };
 
 export const therapyStyles = [
@@ -52,17 +69,19 @@ export const therapyStyles = [
   },
 ];
 
+const initialMessage: Message = {
+  id: "1",
+  role: "assistant",
+  content:
+    "Hello! I'm CounselAI, your personal mental health assistant. I'm here to listen and support you. You can type a message or tap the microphone to begin.",
+};
+
 
 export default function EmpathAIClient() {
   const { toast } = useToast();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      role: "assistant",
-      content:
-        "Hello! I'm CounselAI, your personal mental health assistant. I'm here to listen and support you. You can type a message or tap the microphone to begin.",
-    },
-  ]);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+
   const [isListening, setIsListening] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -77,6 +96,57 @@ export default function EmpathAIClient() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasSpokenInitialMessage = useRef(false);
 
+  // Load chats from local storage on initial render
+  useEffect(() => {
+    try {
+      const savedChats = localStorage.getItem("counselai-chats");
+      if (savedChats) {
+        const parsedChats = JSON.parse(savedChats);
+        if (Array.isArray(parsedChats) && parsedChats.length > 0) {
+          setChats(parsedChats);
+          setActiveChatId(parsedChats[0].id);
+        } else {
+          createNewChat();
+        }
+      } else {
+        createNewChat();
+      }
+    } catch (error) {
+      console.error("Failed to load chats from local storage:", error);
+      createNewChat();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Save chats to local storage whenever they change
+  useEffect(() => {
+    if (chats.length > 0) {
+      localStorage.setItem("counselai-chats", JSON.stringify(chats));
+    }
+  }, [chats]);
+  
+  const createNewChat = () => {
+    const newChat: Chat = {
+      id: `chat-${Date.now()}`,
+      name: "New Chat",
+      messages: [initialMessage],
+    };
+    setChats(prev => [newChat, ...prev]);
+    setActiveChatId(newChat.id);
+  }
+
+  const activeChat = chats.find(chat => chat.id === activeChatId);
+
+  const updateMessages = (updater: (prevMessages: Message[]) => Message[]) => {
+    setChats(prevChats =>
+      prevChats.map(chat =>
+        chat.id === activeChatId
+          ? { ...chat, messages: updater(chat.messages) }
+          : chat
+      )
+    );
+  };
+  
   const speakText = useCallback((text: string) => {
     if ('speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(text);
@@ -87,7 +157,6 @@ export default function EmpathAIClient() {
       utterance.onend = () => setIsSpeaking(false);
       utterance.onerror = () => setIsSpeaking(false);
       
-      // Stop any currently speaking utterance before starting a new one
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
     }
@@ -104,27 +173,26 @@ export default function EmpathAIClient() {
     if ('speechSynthesis' in window) {
       const loadVoices = () => {
         const availableVoices = window.speechSynthesis.getVoices();
-        setVoices(availableVoices);
-        if (availableVoices.length > 0 && !selectedVoice) {
-          // Find a preferred voice or default to the first one
-          const preferredVoice = availableVoices.find(v => v.name.includes('Google') && v.lang.startsWith('en')) || availableVoices[0];
-          setSelectedVoice(preferredVoice);
+        if (availableVoices.length > 0) {
+          setVoices(availableVoices);
+          if (!selectedVoice) {
+            const preferredVoice = availableVoices.find(v => v.name.includes('Google') && v.lang.startsWith('en')) || availableVoices[0];
+            setSelectedVoice(preferredVoice);
+          }
         }
       };
-      // onvoiceschanged is not reliable, so we poll for voices
       const voiceInterval = setInterval(loadVoices, 200);
       loadVoices();
       
-      if (!hasSpokenInitialMessage.current && messages.length > 0) {
-        setTimeout(() => {
-          speakText(messages[0].content);
+      if (!hasSpokenInitialMessage.current && activeChat?.messages.length === 1) {
+         setTimeout(() => {
+          speakText(activeChat.messages[0].content);
           hasSpokenInitialMessage.current = true;
-        }, 500); // Increased delay to ensure voices are loaded
+        }, 500); 
       }
-
       return () => clearInterval(voiceInterval);
     }
-  }, [messages, selectedVoice, speakText]);
+  }, [activeChat, selectedVoice, speakText]);
 
   useEffect(() => {
     if ("SpeechRecognition" in window || "webkitSpeechRecognition" in window) {
@@ -148,9 +216,7 @@ export default function EmpathAIClient() {
       };
       
       recognition.onend = () => {
-        if (isListening) {
-           setIsListening(false);
-        }
+        setIsListening(false);
       };
       
       recognition.onerror = (event: any) => {
@@ -173,11 +239,11 @@ export default function EmpathAIClient() {
 
       speechRecognition.current = recognition;
     }
-  }, [toast, isListening]);
+  }, [toast]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading]);
+  }, [activeChat?.messages, isLoading]);
 
   const handleMicClick = () => {
     handleStopSpeaking();
@@ -200,7 +266,14 @@ export default function EmpathAIClient() {
       role: "user",
       content: text,
     };
-    setMessages((prev) => [...prev, newUserMessage]);
+    
+    updateMessages((prev) => [...prev, newUserMessage]);
+    
+    // Update chat name if it's the first user message
+    if (activeChat && activeChat.messages.length === 1) { // 1 because it includes initial message
+       setChats(prev => prev.map(chat => chat.id === activeChatId ? {...chat, name: text.substring(0, 30)} : chat))
+    }
+
     setUserInput("");
     setIsLoading(true);
     handleStopSpeaking();
@@ -221,7 +294,7 @@ export default function EmpathAIClient() {
           role: "assistant",
           content: result.response,
         };
-        setMessages((prev) => [...prev, newAssistantMessage]);
+        updateMessages((prev) => [...prev, newAssistantMessage]);
         speakText(result.response);
       } else {
         throw new Error("Received an empty response from the AI.");
@@ -239,7 +312,7 @@ export default function EmpathAIClient() {
         role: "assistant",
         content: "I'm sorry, I seem to be having trouble connecting. Please try again in a moment.",
       }
-      setMessages((prev) => [...prev, assistantErrorMessage]);
+      updateMessages((prev) => [...prev, assistantErrorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -253,85 +326,120 @@ export default function EmpathAIClient() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background font-body text-foreground">
-      <header className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center gap-2">
-          <BrainCircuit className="h-8 w-8 text-primary" />
-          <h1 className="text-2xl font-bold font-headline">CounselAI</h1>
-        </div>
-        <SettingsDialog
-          voices={voices}
-          selectedVoice={selectedVoice}
-          setSelectedVoice={setSelectedVoice}
-          therapyStyle={therapyStyle}
-          setTherapyStyle={setTherapyStyle}
-        />
-      </header>
-
-      <main className="flex-1 flex flex-col p-4 md:p-6 min-h-0">
-        <Card className="flex-1 flex flex-col shadow-lg">
-          <CardContent className="flex-1 p-2 md:p-4 flex">
-            <ScrollArea className="flex-1 h-full">
-              <div className="space-y-4 pr-4">
-                {messages.map((msg) => (
-                  <ChatMessage key={msg.id} message={msg} />
-                ))}
-                {isListening && userInput && (
-                   <ChatMessage message={{id: 'interim', role: 'user', content: userInput}} isInterim/>
-                )}
-                {isLoading && <ChatMessage.Loading />}
-                <div ref={messagesEndRef} />
+    <>
+      <Sidebar>
+        <SidebarHeader>
+          <div className="flex items-center justify-between">
+             <div className="flex items-center gap-2">
+                <BrainCircuit className="h-8 w-8 text-primary" />
+                <h1 className="text-2xl font-bold font-headline">CounselAI</h1>
               </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-      </main>
+              <Button variant="ghost" size="icon" onClick={createNewChat}>
+                  <Plus className="h-6 w-6"/>
+                  <span className="sr-only">New Chat</span>
+              </Button>
+          </div>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarMenu>
+            {chats.map(chat => (
+               <SidebarMenuItem key={chat.id}>
+                 <SidebarMenuButton 
+                  onClick={() => setActiveChatId(chat.id)}
+                  isActive={chat.id === activeChatId}
+                  className="truncate"
+                 >
+                   {chat.name}
+                 </SidebarMenuButton>
+               </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarContent>
+        <SidebarFooter>
+            <SettingsDialog
+              voices={voices}
+              selectedVoice={selectedVoice}
+              setSelectedVoice={setSelectedVoice}
+              therapyStyle={therapyStyle}
+              setTherapyStyle={setTherapyStyle}
+            />
+        </SidebarFooter>
+      </Sidebar>
+      <SidebarInset>
+        <div className="flex flex-col h-screen bg-background font-body text-foreground">
+          <header className="flex md:hidden items-center justify-between p-4 border-b">
+            <div className="flex items-center gap-2">
+              <SidebarTrigger />
+              <h1 className="text-2xl font-bold font-headline">CounselAI</h1>
+            </div>
+          </header>
 
-      <footer className="p-4 border-t">
-        <div className="flex items-start gap-2 max-w-2xl mx-auto">
-          <Textarea
-            value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Type your message or use the microphone..."
-            className="flex-1 resize-none"
-            rows={1}
-            disabled={isLoading || isListening}
-          />
-           {isSpeaking ? (
-            <Button
-              size="icon"
-              variant="destructive"
-              className="h-10 w-10 shrink-0"
-              onClick={handleStopSpeaking}
-            >
-              <Square className="h-5 w-5" />
-            </Button>
-           ) : (
-            <Button
-              size="icon"
-              className={`h-10 w-10 shrink-0 ${
-                isListening ? "bg-destructive" : "bg-primary"
-              }`}
-              onClick={handleMicClick}
-              disabled={isLoading}
-            >
-              <Mic className="h-5 w-5" />
-            </Button>
-           )}
-          <Button
-            size="icon"
-            onClick={() => handleSend(userInput)}
-            disabled={!userInput.trim() || isLoading}
-            className="h-10 w-10 shrink-0"
-          >
-            <Send className="h-5 w-5" />
-          </Button>
+          <main className="flex-1 flex flex-col p-4 md:p-6 min-h-0">
+            <Card className="flex-1 flex flex-col shadow-lg">
+              <CardContent className="flex-1 p-2 md:p-4 flex">
+                <ScrollArea className="flex-1 h-full">
+                  <div className="space-y-4 pr-4">
+                    {activeChat?.messages.map((msg) => (
+                      <ChatMessage key={msg.id} message={msg} />
+                    ))}
+                    {isListening && userInput && (
+                      <ChatMessage message={{id: 'interim', role: 'user', content: userInput}} isInterim/>
+                    )}
+                    {isLoading && <ChatMessage.Loading />}
+                    <div ref={messagesEndRef} />
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </main>
+
+          <footer className="p-4 border-t">
+            <div className="flex items-start gap-2 max-w-2xl mx-auto">
+              <Textarea
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Type your message or use the microphone..."
+                className="flex-1 resize-none"
+                rows={1}
+                disabled={isLoading || isListening || !activeChatId}
+              />
+              {isSpeaking ? (
+                <Button
+                  size="icon"
+                  variant="destructive"
+                  className="h-10 w-10 shrink-0"
+                  onClick={handleStopSpeaking}
+                >
+                  <Square className="h-5 w-5" />
+                </Button>
+              ) : (
+                <Button
+                  size="icon"
+                  className={`h-10 w-10 shrink-0 ${
+                    isListening ? "bg-destructive" : "bg-primary"
+                  }`}
+                  onClick={handleMicClick}
+                  disabled={isLoading || !activeChatId}
+                >
+                  <Mic className="h-5 w-5" />
+                </Button>
+              )}
+              <Button
+                size="icon"
+                onClick={() => handleSend(userInput)}
+                disabled={!userInput.trim() || isLoading || !activeChatId}
+                className="h-10 w-10 shrink-0"
+              >
+                <Send className="h-5 w-5" />
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground text-center mt-2 h-4">
+                {isListening ? "Listening... Click the mic to send." : isSpeaking ? "Speaking..." : isLoading ? "" : activeChatId ? "Press Enter to send. Use Shift+Enter for a new line." : "Create a new chat to begin."}
+            </p>
+          </footer>
         </div>
-         <p className="text-sm text-muted-foreground text-center mt-2 h-4">
-            {isListening ? "Listening... Click the mic to send." : isSpeaking ? "Speaking..." : isLoading ? "" : "Press Enter to send. Use Shift+Enter for a new line."}
-        </p>
-      </footer>
-    </div>
+       </SidebarInset>
+    </>
   );
 }
