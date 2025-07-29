@@ -22,6 +22,7 @@ import {
 import { Settings } from "lucide-react";
 import { useState } from "react";
 import { therapyStyles } from "./empath-ai-client";
+import { Input } from "./ui/input";
 
 interface SettingsDialogProps {
   voices: SpeechSynthesisVoice[];
@@ -41,6 +42,9 @@ export default function SettingsDialog({
   children,
 }: SettingsDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
   
   const handleVoiceChange = (value: string) => {
     const voice = voices.find(v => v.name === value) || null;
@@ -68,10 +72,48 @@ export default function SettingsDialog({
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
           <DialogDescription>
-            Customize your CounselAI experience.
+            Customize your CounselAI experience and manage your account.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="email" className="text-right">
+              Email
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="col-span-3"
+              placeholder="name@example.com"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="phone" className="text-right">
+              Phone
+            </Label>
+            <Input
+              id="phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="col-span-3"
+              placeholder="(123) 456-7890"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="password" className="text-right">
+              Password
+            </Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="col-span-3"
+            />
+          </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="voice" className="text-right">
               AI Voice
@@ -114,7 +156,7 @@ export default function SettingsDialog({
           </div>
         </div>
         <DialogFooter>
-           <Button onClick={() => setIsOpen(false)}>Close</Button>
+           <Button onClick={() => setIsOpen(false)}>Save & Close</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
