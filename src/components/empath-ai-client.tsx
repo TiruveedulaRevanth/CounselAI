@@ -158,6 +158,7 @@ export default function EmpathAIClient() {
     };
     setChats(prev => [newChat, ...prev]);
     setActiveChatId(newChat.id);
+    hasSpokenInitialMessage.current = false;
     return newChat.id;
   }, []);
 
@@ -170,7 +171,17 @@ export default function EmpathAIClient() {
             } else {
                 const newId = createNewChat();
                 setActiveChatId(newId);
-                return chats.filter(c => c.id === newId); // Return only the new chat
+                // This is a bit tricky, we need to return the *new* chats array.
+                // Since createNewChat already updated the state, we can't just return remainingChats.
+                // So we'll find the newly created chat from the state that createNewChat produced.
+                // A better way might be to have createNewChat return the new array.
+                // For now, let's just create it again.
+                return [{
+                  id: newId,
+                  name: "New Chat",
+                  createdAt: new Date().toISOString(),
+                  messages: [initialMessage],
+                }];
             }
         }
         return remainingChats;
@@ -223,7 +234,9 @@ export default function EmpathAIClient() {
           }
         }
       };
-      const voiceInterval = setInterval(loadVoices, 200);
+      
+      // Voices are loaded asynchronously. We need to check for them periodically.
+      window.speechSynthesis.onvoiceschanged = loadVoices;
       loadVoices();
       
       if (!hasSpokenInitialMessage.current && activeChat?.messages.length === 1) {
@@ -232,7 +245,10 @@ export default function EmpathAIClient() {
           hasSpokenInitialMessage.current = true;
         }, 500); 
       }
-      return () => clearInterval(voiceInterval);
+
+      return () => {
+        window.speechSynthesis.onvoiceschanged = null;
+      }
     }
   }, [activeChat, selectedVoice, speakText]);
 
@@ -293,7 +309,7 @@ export default function EmpathAIClient() {
       speechRecognition.current?.stop();
     } else {
        setUserInput("");
-      speechRecognition.current?.start();
+       speechRecognition.current?.start();
     }
     setIsListening(!isListening);
   };
@@ -364,6 +380,10 @@ export default function EmpathAIClient() {
       updateMessages((prev) => [...prev, assistantErrorMessage]);
     } finally {
       setIsLoading(false);
+      // Ensure recognition can start again after sending
+      if (isListening) {
+          speechRecognition.current?.start();
+      }
     }
   };
   
@@ -379,9 +399,9 @@ export default function EmpathAIClient() {
       Today: [],
       Yesterday: [],
       'Previous 7 Days': [],
-      'This Month': [],
     };
-    const older: Chat[] = [];
+    const older: { [key: string]: Chat[] } = {};
+
     const now = new Date();
     const sevenDaysAgo = subDays(now, 7);
 
@@ -394,15 +414,17 @@ export default function EmpathAIClient() {
       } else if (isAfter(chatDate, sevenDaysAgo)) {
         groups['Previous 7 Days'].push(chat);
       } else {
-        const month = chatDate.toLocaleString('default', { month: 'long' });
-        if (!groups[month]) {
-          groups[month] = [];
+        const month = chatDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+        if (!older[month]) {
+          older[month] = [];
         }
-        groups[month].push(chat);
+        older[month].push(chat);
       }
     });
 
-    return Object.entries(groups).filter(([, chats]) => chats.length > 0);
+    const olderEntries = Object.entries(older).sort(([a], [b]) => new Date(b).getTime() - new Date(a).getTime());
+
+    return [...Object.entries(groups), ...olderEntries].filter(([, chats]) => chats.length > 0);
   }, [chats]);
 
   return (
@@ -525,7 +547,7 @@ export default function EmpathAIClient() {
                   size="icon"
                   className={`h-10 w-10 shrink-0 ${
                     isListening ? "bg-destructive" : "bg-primary"
-                  }`}
+                  } hover:bg-primary/90`}
                   onClick={handleMicClick}
                   disabled={isLoading || !activeChatId}
                 >
