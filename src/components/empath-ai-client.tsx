@@ -294,6 +294,7 @@ export default function EmpathAIClient() {
     handleStopSpeaking();
     if (isListening) {
       speechRecognition.current?.stop();
+      setIsListening(false);
     } else {
        setUserInput("");
        speechRecognition.current?.start();
@@ -517,7 +518,7 @@ export default function EmpathAIClient() {
                 onChange={(e) => setUserInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask anything..."
-                className="flex-1 resize-none rounded-2xl border-2 bg-secondary text-base pr-24 pl-4 py-3"
+                className="flex-1 resize-none rounded-2xl border-2 bg-secondary text-base pr-28 pl-4 py-3"
                 rows={1}
                 disabled={isLoading || !activeChatId}
               />
