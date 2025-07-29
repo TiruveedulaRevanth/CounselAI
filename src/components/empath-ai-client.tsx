@@ -291,19 +291,25 @@ export default function EmpathAIClient() {
 
   const handleSend = async (text: string) => {
     if (!text.trim() || isLoading || !activeChatId) return;
-  
-    const isFirstMessage = activeChat?.messages.length === 0;
-  
+
+    const currentChatId = activeChatId;
+    const isFirstMessage = chats.find(c => c.id === currentChatId)?.messages.length === 0;
+
     const newUserMessage: Message = {
       id: Date.now().toString(),
       role: "user",
       content: text,
     };
-  
-    // Add user message to state
-    updateMessages((prev) => [...prev, newUserMessage]);
-  
-    // Clear input and stop any recognition/speech
+
+    // Immediately add user message to the active chat
+    setChats(prevChats =>
+      prevChats.map(chat =>
+        chat.id === currentChatId
+          ? { ...chat, messages: [...chat.messages, newUserMessage] }
+          : chat
+      )
+    );
+
     setUserInput("");
     setIsLoading(true);
     handleStopSpeaking();
@@ -311,63 +317,53 @@ export default function EmpathAIClient() {
       speechRecognition.current?.stop();
       setIsListening(false);
     }
-  
-    // Use a function to update state with the AI response
-    const addAiResponse = (response: string) => {
-      const newAssistantMessage: Message = {
-        id: Date.now().toString() + "-ai",
-        role: "assistant",
-        content: response,
-      };
-      updateMessages((prev) => [...prev, newAssistantMessage]);
-      speakText(response);
-    };
-  
-    // Use a function to update state with an error message
-    const addAiErrorResponse = () => {
-      const assistantErrorMessage: Message = {
-        id: Date.now().toString() + "-ai-error",
-        role: "assistant",
-        content: "I'm sorry, I seem to be having trouble connecting. Please try again in a moment.",
-      };
-      updateMessages((prev) => [...prev, assistantErrorMessage]);
-    };
-  
+    
     try {
-      // Generate title and AI response in parallel
-      const [titleResult, aiResult] = await Promise.allSettled([
-        isFirstMessage
-          ? summarizeChat({ message: text })
-          : Promise.resolve(null),
-        personalizeTherapyStyle({
-          therapyStyle: therapyStyle,
-          userInput: text,
-        }),
-      ]);
-  
-      // Update title if successful
-      if (titleResult.status === 'fulfilled' && titleResult.value) {
-        setChats(prev =>
-          prev.map(chat =>
-            chat.id === activeChatId ? { ...chat, name: titleResult.value.title } : chat
-          )
-        );
-      } else if (titleResult.status === 'rejected') {
-        console.error("Failed to summarize chat title, using default.", titleResult.reason);
-        // Fallback to using a snippet of the message as title
-        setChats(prev =>
-          prev.map(chat =>
-            chat.id === activeChatId ? { ...chat, name: text.substring(0, 40) + '...' } : chat
-          )
-        );
+      // If it's the first message, generate title first
+      if (isFirstMessage) {
+        try {
+            const titleResult = await summarizeChat({ message: text });
+            if (titleResult.title) {
+                setChats(prev =>
+                    prev.map(chat =>
+                        chat.id === currentChatId ? { ...chat, name: titleResult.title } : chat
+                    )
+                );
+            }
+        } catch (titleError) {
+             console.error("Failed to summarize chat title, using default.", titleError);
+             setChats(prev =>
+                prev.map(chat =>
+                    chat.id === currentChatId ? { ...chat, name: text.substring(0, 40) + '...' } : chat
+                )
+             );
+        }
       }
-  
-      // Handle AI response
-      if (aiResult.status === 'fulfilled' && aiResult.value.response) {
-        addAiResponse(aiResult.value.response);
+
+      // Then get the AI response
+      const aiResult = await personalizeTherapyStyle({
+        therapyStyle: therapyStyle,
+        userInput: text,
+      });
+
+      if (aiResult.response) {
+        const newAssistantMessage: Message = {
+          id: Date.now().toString() + "-ai",
+          role: "assistant",
+          content: aiResult.response,
+        };
+        setChats(prevChats =>
+          prevChats.map(chat =>
+            chat.id === currentChatId
+              ? { ...chat, messages: [...chat.messages, newAssistantMessage] }
+              : chat
+          )
+        );
+        speakText(aiResult.response);
       } else {
-        throw new Error(aiResult.status === 'rejected' ? aiResult.reason : "Received an empty response from the AI.");
+        throw new Error("Received an empty response from the AI.");
       }
+
     } catch (error) {
       console.error("Error calling AI:", error);
       toast({
@@ -375,7 +371,18 @@ export default function EmpathAIClient() {
         title: "AI Error",
         description: "Sorry, I encountered an error. Please try again.",
       });
-      addAiErrorResponse();
+      const assistantErrorMessage: Message = {
+        id: Date.now().toString() + "-ai-error",
+        role: "assistant",
+        content: "I'm sorry, I seem to be having trouble connecting. Please try again in a moment.",
+      };
+      setChats(prevChats =>
+        prevChats.map(chat =>
+          chat.id === currentChatId
+            ? { ...chat, messages: [...chat.messages, assistantErrorMessage] }
+            : chat
+        )
+      );
     } finally {
       setIsLoading(false);
     }
@@ -479,13 +486,15 @@ export default function EmpathAIClient() {
             ))}
         </SidebarContent>
         <SidebarFooter>
-            <SettingsDialog
-              voices={voices}
-              selectedVoice={selectedVoice}
-              setSelectedVoice={setSelectedVoice}
-              therapyStyle={therapyStyle}
-              setTherapyStyle={setTherapyStyle}
-            />
+            <div className="p-2">
+                <SettingsDialog
+                  voices={voices}
+                  selectedVoice={selectedVoice}
+                  setSelectedVoice={setSelectedVoice}
+                  therapyStyle={therapyStyle}
+                  setTherapyStyle={setTherapyStyle}
+                />
+            </div>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
@@ -521,17 +530,17 @@ export default function EmpathAIClient() {
           </main>
 
           <footer className="p-4 w-full">
-            <div className="flex items-end gap-2 max-w-2xl mx-auto bg-card rounded-2xl border p-2 shadow-sm">
+            <div className="relative flex items-end gap-2 max-w-2xl mx-auto bg-card rounded-2xl border p-2 shadow-sm">
                <Textarea
                   value={userInput}
                   onChange={(e) => setUserInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Ask anything..."
-                  className="flex-1 resize-none bg-transparent border-none text-base focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className="flex-1 resize-none bg-transparent border-none text-base focus-visible:ring-0 focus-visible:ring-offset-0 pr-24"
                   rows={1}
                   disabled={isLoading || !activeChatId}
               />
-              <div className="flex items-center gap-1">
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                   {isSpeaking ? (
                       <Button
                       size="icon"
