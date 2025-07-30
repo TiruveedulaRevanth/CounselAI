@@ -224,8 +224,9 @@ const Sidebar = React.forwardRef<
           "data-[variant=inset]:m-2 data-[variant=inset]:rounded-xl data-[variant=inset]:bg-sidebar",
           "flex-col text-sidebar-foreground",
           "transition-all duration-300 ease-in-out",
-          "data-[state=collapsed]:w-[var(--sidebar-width-icon)] data-[state=expanded]:w-[var(--sidebar-width)]",
+          "data-[state=collapsed]:w-0 data-[state=expanded]:w-[var(--sidebar-width)]",
           "data-[side=right]:order-last",
+          "data-[state=collapsed]:overflow-hidden",
           className
         )}
         data-state={state}
