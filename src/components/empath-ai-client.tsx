@@ -522,7 +522,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
             </div>
           </header>
 
-          <main className="flex-1 flex flex-col">
+          <main className="flex-1 flex flex-col overflow-y-hidden">
              {activeChat && activeChat.messages.length > 0 ? (
                 <ScrollArea className="flex-grow">
                   <div className="space-y-6 p-4 md:p-6 lg:p-8 max-w-4xl mx-auto w-full">
@@ -598,3 +598,4 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
     </>
   );
 }
+
