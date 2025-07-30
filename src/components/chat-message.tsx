@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -9,11 +10,12 @@ import { BrainLogo } from "./brain-logo";
 
 interface ChatMessageProps {
   message: Message;
+  userName: string | null;
   isInterim?: boolean;
   onSpeak?: (text: string) => void;
 }
 
-export default function ChatMessage({ message, isInterim = false, onSpeak }: ChatMessageProps) {
+export default function ChatMessage({ message, userName, isInterim = false, onSpeak }: ChatMessageProps) {
   const isAssistant = message.role === "assistant";
 
   return (
@@ -53,8 +55,8 @@ export default function ChatMessage({ message, isInterim = false, onSpeak }: Cha
       </div>
        {!isAssistant && (
          <Avatar className="h-8 w-8">
-            <AvatarFallback className="bg-destructive text-destructive-foreground">
-                <User size={20} />
+            <AvatarFallback className="bg-destructive text-destructive-foreground font-bold">
+                {userName ? userName.charAt(0).toUpperCase() : <User size={20} />}
             </AvatarFallback>
         </Avatar>
       )}

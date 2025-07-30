@@ -527,10 +527,10 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
                 <ScrollArea className="flex-grow">
                   <div className="space-y-6 p-4 md:p-6 lg:p-8 max-w-4xl mx-auto w-full">
                     {activeChat?.messages.map((msg) => (
-                      <ChatMessage key={msg.id} message={msg} onSpeak={speakText} />
+                      <ChatMessage key={msg.id} message={msg} onSpeak={speakText} userName={userName} />
                     ))}
                     {isListening && userInput && (
-                      <ChatMessage message={{id: 'interim', role: 'user', content: userInput}} isInterim/>
+                      <ChatMessage message={{id: 'interim', role: 'user', content: userInput}} isInterim userName={userName}/>
                     )}
                     {isLoading && <ChatMessage.Loading />}
                     <div ref={messagesEndRef} />
