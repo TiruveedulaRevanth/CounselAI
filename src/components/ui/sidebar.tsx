@@ -142,7 +142,7 @@ const SidebarProvider = React.forwardRef<
               } as React.CSSProperties
             }
             className={cn(
-              "group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar-background",
+              "group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-background",
               className
             )}
             ref={ref}
@@ -217,12 +217,21 @@ const Sidebar = React.forwardRef<
     return (
       <div
         ref={ref}
-        className="group peer hidden md:flex flex-col h-svh text-sidebar-foreground bg-sidebar-background transition-all duration-300 ease-in-out"
+        className={cn(
+          "group peer hidden md:flex",
+          "h-svh",
+          "data-[variant=sidebar]:bg-sidebar-background",
+          "data-[variant=inset]:m-2 data-[variant=inset]:rounded-xl data-[variant=inset]:bg-sidebar",
+          "flex-col text-sidebar-foreground",
+          "transition-all duration-300 ease-in-out",
+          "data-[state=collapsed]:w-[var(--sidebar-width-icon)] data-[state=expanded]:w-[var(--sidebar-width)]",
+          "data-[side=right]:order-last",
+          className
+        )}
         data-state={state}
         data-collapsible={state === "collapsed" ? collapsible : ""}
         data-variant={variant}
         data-side={side}
-        style={{width: state === 'collapsed' ? '0' : 'var(--sidebar-width)'}}
       >
           <div
             data-sidebar="sidebar"

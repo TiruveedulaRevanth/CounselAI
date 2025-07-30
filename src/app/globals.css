@@ -34,20 +34,20 @@ body {
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
 
-    --sidebar-background: 240 4.8% 95.9%;
-    --sidebar-foreground: 240 10% 3.9%;
-    --sidebar-border: 240 5.9% 90%;
-    --sidebar-primary: 122 47% 49%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-background: 0 0% 17%; /* Carpathian Grey */
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 25%;
+    --sidebar-primary: 158 89% 62%;
+    --sidebar-primary-foreground: 222 47% 11%;
     --sidebar-accent: 0 100% 60%; /* Brighter Red */
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-ring: 122 47% 49%;
+    --sidebar-ring: 158 89% 62%;
     
     --user-bubble: 145 63% 42%;
     --assistant-bubble: 217 91% 60%;
   }
   .dark {
-    --background: 228 9% 17%;
+    --background: 228 9% 10%;
     --foreground: 210 40% 98%;
     --card: 228 9% 17%;
     --card-foreground: 210 40% 98%;
@@ -67,9 +67,9 @@ body {
     --input: 217 33% 17%;
     --ring: 215 20% 65%;
 
-    --sidebar-background: 228 9% 14%;
+    --sidebar-background: 0 0% 17%; /* Carpathian Grey */
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 17%;
+    --sidebar-border: 0 0% 25%;
     --sidebar-primary: 210 40% 98%;
     --sidebar-primary-foreground: 222 47% 11%;
     --sidebar-accent: 0 100% 60%; /* Brighter Red */

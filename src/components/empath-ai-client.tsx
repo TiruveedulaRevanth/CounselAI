@@ -447,7 +447,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
           isSettingsOpen={isSettingsOpen}
           setIsSettingsOpen={setIsSettingsOpen}
         />
-      <Sidebar>
+      <Sidebar variant="inset">
         <SidebarHeader>
           <div className="flex items-center justify-between">
              <div className="flex items-center gap-2">
