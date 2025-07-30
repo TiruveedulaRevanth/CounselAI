@@ -9,10 +9,10 @@ export const BrainLogo = ({ className }: { className?: string }) => (
     fill="url(#brain-gradient)"
   >
     <defs>
-      <linearGradient id="brain-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" style={{ stopColor: '#6B46C1' }} />
-        <stop offset="50%" style={{ stopColor: '#D53F8C' }} />
-        <stop offset="100%" style={{ stopColor: '#F6AD55' }} />
+      <linearGradient id="brain-gradient" x1="0%" y1="100%" x2="100%" y2="0%">
+        <stop offset="0%" style={{ stopColor: '#8134AF' }} />
+        <stop offset="50%" style={{ stopColor: '#DD2A7B' }} />
+        <stop offset="100%" style={{ stopColor: '#FEDA77' }} />
       </linearGradient>
     </defs>
     <path
