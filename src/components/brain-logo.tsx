@@ -4,38 +4,44 @@ import React from 'react';
 export const BrainLogo = ({ className }: { className?: string }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
+    viewBox="0 0 512 512"
     className={className}
+    fill="url(#brain-gradient)"
   >
     <defs>
-      <linearGradient id="leaf-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style={{ stopColor: '#4ade80', stopOpacity: 1 }} />
-        <stop offset="100%" style={{ stopColor: '#3b82f6', stopOpacity: 1 }} />
+      <linearGradient id="brain-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" style={{ stopColor: '#6B46C1' }} />
+        <stop offset="50%" style={{ stopColor: '#D53F8C' }} />
+        <stop offset="100%" style={{ stopColor: '#F6AD55' }} />
       </linearGradient>
     </defs>
-    
-    {/* Brain Outline */}
-    <path 
-      d="M12 21a8.5 8.5 0 1 0-8.5-8.5c0 2.26.8 4.33 2.5 5.5" 
-      className="text-primary" 
+    <path
+      d="M256 0C114.6 0 0 114.6 0 256s114.6 256 256 256s256-114.6 256-256S397.4 0 256 0zM256 464c-114.7 0-208-93.3-208-208S141.3 48 256 48s208 93.3 208 208-93.3 208-208 208z"
+      fill="url(#brain-gradient)"
     />
+    <path
+      d="M256 96c-13.3 0-24 10.7-24 24v32c0 13.3 10.7 24 24 24s24-10.7 24-24v-32c0-13.3-10.7-24-24-24zm-64 128c-13.3 0-24 10.7-24 24v32c0 13.3 10.7 24 24 24s24-10.7 24-24v-32c0-13.3-10.7-24-24-24zm128 0c-13.3 0-24 10.7-24 24v32c0 13.3 10.7 24 24 24s24-10.7 24-24v-32c0-13.3-10.7-24-24-24zM160 320c-13.3 0-24 10.7-24 24v32c0 13.3 10.7 24 24 24s24-10.7 24-24v-32c0-13.3-10.7-24-24-24zm192 0c-13.3 0-24 10.7-24 24v32c0 13.3 10.7 24 24 24s24-10.7 24-24v-32c0-13.3-10.7-24-24-24z"
+      fill="white"
+      stroke="white"
+      strokeWidth="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+        <animateTransform
+            attributeName="transform"
+            type="rotate"
+            from="0 256 256"
+            to="360 256 256"
+            dur="20s"
+            repeatCount="indefinite"
+        />
+    </path>
     <path 
-      d="M12 21a8.5 8.5 0 1 1 8.5-8.5c0 2.26-.8 4.33-2.5 5.5" 
-      className="text-primary" 
+      d="M256,176v160m-64-80h128"
+      fill="none"
+      stroke="white"
+      strokeWidth="16"
+      strokeLinecap="round"
     />
-    <path d="M15.5 12.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z" className="text-primary" />
-    <path d="M12 12m-2 0a2 2 0 1 0 4 0 2 2 0 1 0-4 0" className="text-primary" />
-    <path d="M12 12v-2a2 2 0 0 1 2-2" className="text-primary" />
-
-    {/* Growing Leaf */}
-    <g stroke="url(#leaf-gradient)">
-      <path d="M12 10C12 7 14 5 16 5" />
-      <path d="M12 10c0 2.5-2 4.5-2 4.5s-2-2-2-4.5c0-2.5 2-4.5 2-4.5S12 7.5 12 10z" />
-    </g>
   </svg>
 );
