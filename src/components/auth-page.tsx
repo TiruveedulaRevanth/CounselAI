@@ -19,6 +19,8 @@ import { useToast } from "@/hooks/use-toast";
 import { BrainLogo } from "./brain-logo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Separator } from "./ui/separator";
+import { auth } from "@/lib/firebase";
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 interface AuthPageProps {
   onSignInSuccess: (name: string) => void;
@@ -85,6 +87,28 @@ export default function AuthPage({ onSignInSuccess }: AuthPageProps) {
     });
     onSignInSuccess(values.name);
   };
+  
+  const handleGoogleSignIn = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        const name = user.displayName || user.email?.split('@')[0] || "User";
+        toast({
+            title: "Sign In Successful",
+            description: `Welcome, ${name}!`,
+        });
+        onSignInSuccess(name);
+    } catch (error: any) {
+        console.error("Google Sign-In Error:", error);
+        toast({
+            variant: "destructive",
+            title: "Google Sign-In Failed",
+            description: error.message,
+        });
+    }
+  };
+
 
   const renderInitial = () => (
     <Card className="w-full max-w-md">
@@ -152,7 +176,7 @@ export default function AuthPage({ onSignInSuccess }: AuthPageProps) {
             <CardDescription>Sign up to start your journey with CounselAI.</CardDescription>
         </CardHeader>
         <CardContent>
-             <Button variant="outline" className="w-full mb-4 flex items-center gap-2">
+             <Button variant="outline" className="w-full mb-4 flex items-center gap-2" onClick={handleGoogleSignIn}>
                 <GoogleIcon />
                 Sign up with Google
             </Button>
