@@ -20,7 +20,7 @@ body {
     --secondary-foreground: 240 5.9% 10%;
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
-    --accent: 9 90% 58%; /* Tomato Red */
+    --accent: 0 100% 60%; /* Brighter Red */
     --accent-foreground: 240 5.9% 10%;
     --destructive: 0 84.2% 60.2%; /* Red */
     --destructive-foreground: 0 0% 98%;
@@ -39,7 +39,7 @@ body {
     --sidebar-border: 240 5.9% 90%;
     --sidebar-primary: 122 47% 49%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 9 90% 58%; /* Tomato Red */
+    --sidebar-accent: 0 100% 60%; /* Brighter Red */
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-ring: 122 47% 49%;
     
@@ -59,7 +59,7 @@ body {
     --secondary-foreground: 210 40% 98%;
     --muted: 217 33% 17%;
     --muted-foreground: 215 20% 65%;
-    --accent: 9 90% 58%; /* Tomato Red */
+    --accent: 0 100% 60%; /* Brighter Red */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
@@ -72,7 +72,7 @@ body {
     --sidebar-border: 217 33% 17%;
     --sidebar-primary: 210 40% 98%;
     --sidebar-primary-foreground: 222 47% 11%;
-    --sidebar-accent: 9 90% 58%; /* Tomato Red */
+    --sidebar-accent: 0 100% 60%; /* Brighter Red */
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-ring: 215 20% 65%;
 
