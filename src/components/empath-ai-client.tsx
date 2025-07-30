@@ -123,6 +123,7 @@ export default function EmpathAIClient() {
     localStorage.setItem("counselai-user-name", name);
     setIsSignedIn(true);
     setUserName(name);
+    createNewChat();
   }
 
   const handleSignOut = () => {
