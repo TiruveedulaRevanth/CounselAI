@@ -5,7 +5,7 @@ import { personalizeTherapyStyle } from "@/ai/flows/therapy-style-personalizatio
 import { summarizeChat } from "@/ai/flows/summarize-chat-flow";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Mic, Plus, Send, Settings, Sparkles, Square, Trash2, HeartCrack } from "lucide-react";
+import { LogOut, Mic, Plus, Send, Settings, Sparkles, Square, Trash2, HeartCrack, Library } from "lucide-react";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import ChatMessage from "./chat-message";
 import SettingsDialog from "./settings-dialog";
@@ -48,6 +48,7 @@ import { ThemeToggle } from "./theme-toggle";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import MindfulToolkitDialog from "./mindful-toolkit-dialog";
 import EmergencyResourcesDialog from "./emergency-resources-dialog";
+import ResourcesLibrary from "./resources-library";
 
 
 declare global {
@@ -120,6 +121,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isToolkitOpen, setIsToolkitOpen] = useState(false);
   const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
 
 
   const [isListening, setIsListening] = useState(false);
@@ -544,6 +546,10 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
           isOpen={isEmergencyOpen}
           onOpenChange={setIsEmergencyOpen}
         />
+        <ResourcesLibrary 
+            isOpen={isLibraryOpen}
+            onOpenChange={setIsLibraryOpen}
+        />
       <Sidebar variant="inset">
         <SidebarHeader>
           <div className="flex items-center justify-between">
@@ -629,6 +635,17 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
                   </TooltipContent>
                 </Tooltip>
                 <ThemeToggle />
+                 <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={() => setIsLibraryOpen(true)}>
+                      <Library className="h-5 w-5" />
+                      <span className="sr-only">Resources Library</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Resources Library</p>
+                  </TooltipContent>
+                </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="icon" onClick={() => setIsToolkitOpen(true)}>

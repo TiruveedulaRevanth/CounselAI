@@ -1,6 +1,9 @@
 
 'use server';
 
+import { suggestResource } from './suggest-resource-flow';
+import { SuggestResourceInputSchema } from '../schemas';
+
 /**
  * @fileOverview Personalizes the AI's therapeutic approach based on a text-defined therapy style.
  *
@@ -11,6 +14,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import type { SuggestResourceInput } from '../schemas';
 
 const MessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
@@ -79,12 +83,28 @@ const checkForSelfHarmTool = ai.defineTool(
   }
 );
 
+const suggestResourceTool = ai.defineTool(
+    {
+        name: 'suggestResource',
+        description: 'Suggests a relevant resource from the library based on the user\'s input.',
+        inputSchema: SuggestResourceInputSchema,
+        outputSchema: z.string().describe("A formatted string suggesting a resource, or an empty string if no resource is relevant."),
+    },
+    async (input: SuggestResourceInput) => {
+        const result = await suggestResource(input);
+        if (result && result.title) {
+            return `I found a resource that might be helpful: "${result.title}". You can find it in the Resources Library.`;
+        }
+        return "";
+    }
+)
+
 
 const prompt = ai.definePrompt({
   name: 'personalizeTherapyStylePrompt',
   input: {schema: PersonalizeTherapyStyleInputSchema},
   output: {schema: PersonalizeTherapyStyleOutputSchema},
-  tools: [checkForMedicalQueryTool, checkForSelfHarmTool],
+  tools: [checkForMedicalQueryTool, checkForSelfHarmTool, suggestResourceTool],
   system: `You are an AI assistant specializing in mental health counseling. Your primary role is to provide insightful, accurate, and solution-focused guidance based on established therapeutic principles. Your responses should be comprehensive, detailed, and structured to empower the user.
 
 You have two critical safety guidelines that you MUST follow before generating any response:
@@ -104,8 +124,9 @@ You have two critical safety guidelines that you MUST follow before generating a
     2.  **Ask Clarifying, Open-Ended Questions:** Encourage them to share more.
     3.  **Explore and Reframe:** Help the user explore underlying thoughts and patterns.
     4.  **Provide Actionable, Solution-Focused Strategies:** Offer concrete steps, coping mechanisms, or reframing techniques.
-    5.  **Maintain a Compassionate and Professional Tone:** Be supportive, non-judgmental, and encouraging.
-    6.  **Responding to Euphoria or Manic-Like States:** If the user expresses feelings of euphoria, racing thoughts, or being "on top of the world," it is crucial to respond with a balance of celebration and grounding.
+    5.  **Suggest Resources:** If the user's input mentions topics like anxiety, depression, sleep, stress, or relationship issues, use the \`suggestResourceTool\` to see if there is a relevant article or video in the library. If the tool returns a suggestion, integrate it naturally into your response. For example: "It sounds like you're dealing with a lot of stress right now. As we talk, you might also find the resource I found in the library helpful: 'How to Manage and Reduce Stress'."
+    6.  **Maintain a Compassionate and Professional Tone:** Be supportive, non-judgmental, and encouraging.
+    7.  **Responding to Euphoria or Manic-Like States:** If the user expresses feelings of euphoria, racing thoughts, or being "on top of the world," it is crucial to respond with a balance of celebration and grounding.
         *   **Celebrate the Joy:** First, validate their positive feelings.
         *   **Gently Ground Them:** After validating, gently guide them to the present moment. Ask questions like: "With all this amazing energy, what does your body feel like right now?" or "That's a powerful feeling. Let's take a slow breath together to really soak it in."
         *   **Encourage Self-Awareness:** Prompt reflection without diminishing their excitement.
