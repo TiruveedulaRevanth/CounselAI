@@ -204,7 +204,7 @@ This helps you focus on what truly matters, rather than getting caught up in the
 
 **Setting Boundaries** is also critical. Learn to say "no" to additional commitments when your plate is already full. In a digital world, this also means setting boundaries with technology. Designate specific times to check email and messages, and create "offline" hours where you can disconnect and recharge. It's not about working harder; it's about working smarter and preserving your energy.
 
-Finally, prioritize **Self-Care**. Ensure you are getting adequate sleep, eating nutritious meals, and engaging in regular physical activity. These are non-negotiable for building resilience against stress. Make time for hobbies and social connections that have nothing to do with your work or studies. A healthy work-life balance isn't a luxury; it's a necessity for sustained performance and overall well-being. If you're struggling, don't hesitate to reach out to a manager, academic advisor, or mental health professional for support.`
+Finally, prioritize **Self-Care**. Ensure you are getting adequate sleep, eating nutritious meals, and engaging in regular physical activity. These are non-negotiable for building resilience against stress. Make time for hobbies and social connections that have nothing to do with your work or studies. A healthy work-life balance isn't a luxury; it's a necessity for sustained performance and overall well-being. If you're struggling, don't hesitate to reach out to a manager, academic advisor, or a mental health professional for support.`
   }
 ];
 
@@ -300,7 +300,7 @@ export default function ResourcesLibrary({ isOpen, onOpenChange }: ResourcesLibr
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="flex-1"
               />
-              <ScrollArea className="sm:max-w-xs">
+              <ScrollArea className="sm:max-w-xs whitespace-nowrap">
                 <div className="flex gap-2 pb-2 -mx-1 px-1">
                   <Badge
                     variant={selectedCategory === 'All' ? 'default' : 'secondary'}
@@ -345,3 +345,5 @@ export default function ResourcesLibrary({ isOpen, onOpenChange }: ResourcesLibr
     </Dialog>
   );
 }
+
+    
