@@ -148,14 +148,23 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
           setChats(updatedChats);
           setActiveChatId(updatedChats[0].id);
         } else {
-          createNewChat();
+          // No chats found, create one on first login
+           if (localStorage.getItem("counselai-signed-in")) {
+             createNewChat();
+           }
         }
       } else {
-        createNewChat();
+         // No chats key, create one on first login
+         if (localStorage.getItem("counselai-signed-in")) {
+          createNewChat();
+        }
       }
     } catch (error) {
       console.error("Failed to load chats from local storage:", error);
-      createNewChat();
+      // Fallback: create a new chat if there's an error and user is logged in
+      if (localStorage.getItem("counselai-signed-in")) {
+        createNewChat();
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -188,14 +197,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
             if (remainingChats.length > 0) {
                 setActiveChatId(remainingChats[0].id);
             } else {
-                const newId = createNewChat();
-                setActiveChatId(newId);
-                return [{
-                  id: newId,
-                  name: "New Chat",
-                  createdAt: new Date().toISOString(),
-                  messages: [],
-                }];
+                setActiveChatId(null);
             }
         }
         return remainingChats;
@@ -229,10 +231,9 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
     setChats(chatsToKeep);
   
     if (chatsToKeep.length === 0) {
-      const newChatId = createNewChat();
-      setActiveChatId(newChatId);
+        setActiveChatId(null);
     } else if (!chatsToKeep.some(c => c.id === activeChatId)) {
-      setActiveChatId(chatsToKeep[0].id);
+        setActiveChatId(chatsToKeep[0].id);
     }
   
     toast({
@@ -725,5 +726,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
     </>
   );
 }
+
+    
 
     
