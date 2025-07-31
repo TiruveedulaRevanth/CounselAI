@@ -300,7 +300,7 @@ export default function ResourcesLibrary({ isOpen, onOpenChange }: ResourcesLibr
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="flex-1"
               />
-              <ScrollArea className="sm:max-w-xs whitespace-nowrap">
+              <ScrollArea orientation="horizontal" className="sm:max-w-xs whitespace-nowrap">
                 <div className="flex gap-2 pb-2 -mx-1 px-1">
                   <Badge
                     variant={selectedCategory === 'All' ? 'default' : 'secondary'}
@@ -345,5 +345,3 @@ export default function ResourcesLibrary({ isOpen, onOpenChange }: ResourcesLibr
     </Dialog>
   );
 }
-
-    
