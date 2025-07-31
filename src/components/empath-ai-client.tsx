@@ -23,6 +23,7 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenuAction,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
 import { subDays, isToday, isYesterday, isAfter, startOfMonth, startOfWeek } from 'date-fns';
 import {
@@ -614,6 +615,32 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
                 ))}
             </ScrollArea>
         </SidebarContent>
+        <SidebarFooter className="p-2">
+          <div className="flex flex-col gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="destructive" size="sm" onClick={() => setIsEmergencyOpen(true)} className="justify-start gap-2">
+                  <HeartCrack className="h-4 w-4" />
+                  <span className="group-data-[collapsible=icon]:hidden">Need Help?</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right" align="center">
+                <p>Get Emergency Help</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="secondary" size="sm" onClick={() => setIsLibraryOpen(true)} className="justify-start gap-2">
+                  <Library className="h-4 w-4" />
+                  <span className="group-data-[collapsible=icon]:hidden">Library</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right" align="center">
+                <p>Resources Library</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <div className="flex flex-col h-full bg-background font-body text-foreground">
@@ -727,30 +754,6 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
                     <p className="text-muted-foreground mt-2">Start a new conversation by typing below or using the microphone.</p>
                 </div>
               )}
-               <div className="absolute bottom-4 left-4 flex flex-col gap-2">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant="destructive" size="sm" onClick={() => setIsEmergencyOpen(true)} className="gap-2 shadow-lg">
-                            <HeartCrack className="h-4 w-4" />
-                            <span className="hidden sm:inline">Need Help?</span>
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">
-                            <p>Get Emergency Help</p>
-                        </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant="secondary" size="sm" onClick={() => setIsLibraryOpen(true)} className="gap-2 shadow-lg">
-                            <Library className="h-4 w-4" />
-                            <span className="hidden sm:inline">Library</span>
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">
-                            <p>Resources Library</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </div>
           </main>
 
           <footer className="p-4 w-full shrink-0">
@@ -827,5 +830,3 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
     </TooltipProvider>
   );
 }
-
-    
