@@ -5,7 +5,7 @@ import { personalizeTherapyStyle } from "@/ai/flows/therapy-style-personalizatio
 import { summarizeChat } from "@/ai/flows/summarize-chat-flow";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Mic, Plus, Send, Settings, Sparkles, Square, Trash2 } from "lucide-react";
+import { LogOut, Mic, Plus, Send, Settings, Sparkles, Square, Trash2, HeartCrack } from "lucide-react";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import ChatMessage from "./chat-message";
 import SettingsDialog from "./settings-dialog";
@@ -47,6 +47,7 @@ import { BrainLogo } from "./brain-logo";
 import { ThemeToggle } from "./theme-toggle";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import MindfulToolkitDialog from "./mindful-toolkit-dialog";
+import EmergencyResourcesDialog from "./emergency-resources-dialog";
 
 
 declare global {
@@ -118,6 +119,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isToolkitOpen, setIsToolkitOpen] = useState(false);
+  const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
 
 
   const [isListening, setIsListening] = useState(false);
@@ -538,6 +540,10 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
           isOpen={isToolkitOpen}
           onOpenChange={setIsToolkitOpen}
         />
+        <EmergencyResourcesDialog
+          isOpen={isEmergencyOpen}
+          onOpenChange={setIsEmergencyOpen}
+        />
       <Sidebar variant="inset">
         <SidebarHeader>
           <div className="flex items-center justify-between">
@@ -611,6 +617,17 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
               <h1 className="text-xl font-bold font-headline">CounselAI</h1>
             </div>
             <div className="flex items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="destructive" size="sm" onClick={() => setIsEmergencyOpen(true)} className="gap-2">
+                      <HeartCrack className="h-4 w-4" />
+                      <span className="hidden sm:inline">Need Help?</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Get Emergency Help</p>
+                  </TooltipContent>
+                </Tooltip>
                 <ThemeToggle />
                 <Tooltip>
                   <TooltipTrigger asChild>
