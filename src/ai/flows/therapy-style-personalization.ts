@@ -47,42 +47,6 @@ export async function personalizeTherapyStyle(
   return personalizeTherapyStyleFlow(input);
 }
 
-const checkForMedicalQueryTool = ai.defineTool(
-  {
-    name: 'checkForMedicalQuery',
-    description: 'Checks if the user input is asking for medical advice, diagnosis, or prescription.',
-    inputSchema: z.object({
-      userInput: z.string(),
-    }),
-    outputSchema: z.boolean(),
-  },
-  async ({ userInput }) => {
-    const medicalKeywords = ['prescribe', 'medicine', 'drug', 'medication', 'headache', 'migraine', 'fever', 'sore throat', 'pain', 'sickness', 'illness', 'doctor', 'pharmacist', 'hospital', 'diagnose', 'treatment', 'symptom'];
-    const lowerInput = userInput.toLowerCase();
-    return medicalKeywords.some(keyword => lowerInput.includes(keyword));
-  }
-);
-
-const checkForSelfHarmTool = ai.defineTool(
-  {
-    name: 'checkForSelfHarm',
-    description: 'Checks if the user input contains phrases indicating self-harm or suicidal ideation.',
-    inputSchema: z.object({
-      userInput: z.string(),
-    }),
-    outputSchema: z.boolean(),
-  },
-  async ({ userInput }) => {
-    const selfHarmKeywords = [
-      'hurt myself', 'kill myself', 'end my life', 'want to die', 
-      'suicide', 'ending it all', 'not want to be here anymore', 
-      'life is not worth living', 'feeling hopeless', 'want to end it all'
-    ];
-    const lowerInput = userInput.toLowerCase();
-    return selfHarmKeywords.some(keyword => lowerInput.includes(keyword));
-  }
-);
-
 const suggestResourceTool = ai.defineTool(
     {
         name: 'suggestResource',
@@ -104,16 +68,16 @@ const prompt = ai.definePrompt({
   name: 'personalizeTherapyStylePrompt',
   input: {schema: PersonalizeTherapyStyleInputSchema},
   output: {schema: PersonalizeTherapyStyleOutputSchema},
-  tools: [checkForMedicalQueryTool, checkForSelfHarmTool, suggestResourceTool],
+  tools: [suggestResourceTool],
   system: `You are an AI assistant specializing in mental health counseling. Your primary role is to provide insightful, accurate, and solution-focused guidance based on established therapeutic principles. Your responses should be comprehensive, detailed, and structured to empower the user.
 
 You have two critical safety guidelines that you MUST follow before generating any response:
 
-1.  **Self-Harm Risk Detection:** First, you MUST use the \`checkForSelfHarmTool\` to determine if the user's input contains any indication of self-harm or suicidal ideation.
-    *   **If the tool returns \`true\`:** You MUST immediately halt the normal conversation and trigger the safety protocol. Do not answer their question. Instead, provide this exact response, filling in the user's name if known: "It sounds like you are in a lot of pain, and I'm deeply concerned. Your safety is the most important thing. Please know that help is available, and you don’t have to go through this alone. You can connect with people who can support you by calling or texting one of these helplines at any time. For India, you can call AASRA at +91-9820466726. For the US, you can call or text the National Suicide & Crisis Lifeline at 988. For other regions, please search for a local crisis hotline. If you are in immediate danger, please call your local emergency services."
+1.  **Self-Harm Risk Detection:** You MUST analyze the user's input for any indication of self-harm or suicidal ideation (e.g., "I want to kill myself," "I want to end my life").
+    *   **If you detect a risk:** You MUST immediately halt the normal conversation and trigger the safety protocol. Do not answer their question. Instead, provide this exact response: "It sounds like you are in a lot of pain, and I'm deeply concerned. Your safety is the most important thing. Please know that help is available, and you don’t have to go through this alone. You can connect with people who can support you by calling or texting one of these helplines at any time. For India, you can call AASRA at +91-9820466726. For the US, you can call or text the National Suicide & Crisis Lifeline at 988. For other regions, please search for a local crisis hotline. If you are in immediate danger, please call your local emergency services."
 
-2.  **Medical Query Detection:** If the self-harm check is clear, you MUST then use the \`checkForMedicalQueryTool\` to determine if the user is asking a medical question.
-    *   **If the tool returns \`true\`:** You MUST decline the request. Do not answer the user's question directly. Instead, you MUST generate a response object that contains a 'response' field where you:
+2.  **Medical Query Detection:** If the self-harm check is clear, you MUST determine if the user is asking a medical question (e.g., asking for a diagnosis, or about medication).
+    *   **If the query is medical:** You MUST decline the request. Do not answer the user's question directly. Instead, you MUST generate a response where you:
         1.  Gently explain that you cannot provide medical advice because you are an AI, not a healthcare professional.
         2.  Emphasize the importance of consulting a qualified doctor or pharmacist for any health concerns.
         3.  Tailor the refusal to the user's query to sound natural and not like a canned response.
