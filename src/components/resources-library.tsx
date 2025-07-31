@@ -539,15 +539,17 @@ export default function ResourcesLibrary({ isOpen, onOpenChange }: ResourcesLibr
                 <Button variant="outline" onClick={() => setActiveResource(null)} className="mb-4 self-start">
                     &larr; Back to Library
                 </Button>
-                <ScrollArea className="flex-1 pr-4 -mr-6">
-                    <div className="pr-6">
-                        <h2 className="text-2xl font-bold mb-2">{activeResource.title}</h2>
-                        <p className="text-muted-foreground mb-4">{activeResource.description}</p>
-                        <div className="prose dark:prose-invert max-w-none whitespace-pre-wrap leading-relaxed text-base">
-                            {activeResource.content}
-                        </div>
+                <div className="flex-1 flex flex-col min-h-0 p-4 rounded-lg bg-gradient-to-br from-[#8134AF] via-[#DD2A7B] to-[#FEDA77]">
+                    <div className="bg-background/95 dark:bg-background/90 p-6 rounded-md flex-1 min-h-0">
+                        <ScrollArea className="h-full pr-4 -mr-4">
+                            <h2 className="text-2xl font-bold mb-2">{activeResource.title}</h2>
+                            <p className="text-muted-foreground mb-4">{activeResource.description}</p>
+                            <div className="prose dark:prose-invert max-w-none whitespace-pre-wrap leading-relaxed text-base">
+                                {activeResource.content}
+                            </div>
+                        </ScrollArea>
                     </div>
-                </ScrollArea>
+                </div>
             </div>
         ) : (
           <>
@@ -582,7 +584,3 @@ export default function ResourcesLibrary({ isOpen, onOpenChange }: ResourcesLibr
     </Dialog>
   );
 }
-
-    
-
-    
