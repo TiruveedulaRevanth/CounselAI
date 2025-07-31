@@ -143,7 +143,7 @@ You may have heard of the "five stages of grief": denial, anger, bargaining, dep
 
 The emotional symptoms of grief are vast and can include shock, sadness, guilt, anger, and fear. You might find yourself replaying events in your head or feeling a profound sense of emptiness. Grief can also manifest physically, leading to fatigue, nausea, weight changes, and a weakened immune system. It can feel isolating, but it's important to remember that these responses are normal.
 
-Coping with grief requires patience and self-compassion. Allow yourself to feel your emotions without judgment. Suppressing them can prolong the healing process. Find healthy ways to express your feelings, whether it's through talking with a trusted friend or family member, journaling, or engaging in creative outlets like painting or music.
+Coping with grief requires patience and self-compassion. Allow yourself to feel your emotions without judgment. Suppressing them can prolong the healing process. Find healthy ways to express your feelings, whether it's through talking with a trusted friend or family member, journaling, or engaging in a creative outlet like painting or music.
 
 Maintaining your physical health is also vital. Try to eat nutritious meals, get some form of gentle exercise, and prioritize sleep, even when it feels difficult. Lean on your support system. Connecting with others who understand your pain can make you feel less alone. Support groups, either in-person or online, can provide a safe space to share your experience. And remember, seeking professional help from a therapist or counselor is a sign of strength. They can provide you with tools and strategies to navigate the complexities of your loss. Healing doesn't mean forgetting; it means learning to live with the loss in a new way, carrying the memory of what you've lost with you as you move forward.`
   },
@@ -300,8 +300,8 @@ export default function ResourcesLibrary({ isOpen, onOpenChange }: ResourcesLibr
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="flex-1"
               />
-              <ScrollArea orientation="horizontal" className="sm:max-w-xs whitespace-nowrap">
-                <div className="flex gap-2 pb-2 -mx-1 px-1">
+              <ScrollArea orientation="horizontal" className="w-full sm:w-auto">
+                 <div className="flex gap-2 pb-2 whitespace-nowrap">
                   <Badge
                     variant={selectedCategory === 'All' ? 'default' : 'secondary'}
                     onClick={() => setSelectedCategory('All')}
@@ -345,3 +345,5 @@ export default function ResourcesLibrary({ isOpen, onOpenChange }: ResourcesLibr
     </Dialog>
   );
 }
+
+    
