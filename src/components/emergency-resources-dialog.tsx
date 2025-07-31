@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import { Siren } from "lucide-react";
+import { ScrollArea } from "./ui/scroll-area";
 
 interface EmergencyResourcesDialogProps {
   isOpen: boolean;
@@ -56,7 +57,7 @@ export default function EmergencyResourcesDialog({
             Your safety is the most important thing. Please reach out.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className="py-4">
             <Alert variant="destructive">
                 <Siren className="h-4 w-4" />
                 <AlertTitle>Disclaimer</AlertTitle>
@@ -64,16 +65,18 @@ export default function EmergencyResourcesDialog({
                    If you are in immediate danger or having a medical emergency, please call your local emergency services (like 911, 112, etc.) right away.
                 </AlertDescription>
             </Alert>
-            <div className="space-y-3">
-                {helplines.map((line) => (
-                    <div key={line.name} className="p-3 rounded-lg border">
-                        <p className="font-semibold text-sm text-muted-foreground">{line.region}</p>
-                        <h4 className="font-bold text-lg">{line.name}</h4>
-                        <p className="text-primary font-bold text-xl my-1">{line.contact}</p>
-                        <p className="text-sm text-muted-foreground">{line.description}</p>
-                    </div>
-                ))}
-            </div>
+             <ScrollArea className="h-[40vh] mt-4 pr-4">
+                <div className="space-y-3">
+                    {helplines.map((line) => (
+                        <div key={line.name} className="p-3 rounded-lg border">
+                            <p className="font-semibold text-sm text-muted-foreground">{line.region}</p>
+                            <h4 className="font-bold text-lg">{line.name}</h4>
+                            <p className="text-primary font-bold text-xl my-1">{line.contact}</p>
+                            <p className="text-sm text-muted-foreground">{line.description}</p>
+                        </div>
+                    ))}
+                </div>
+            </ScrollArea>
         </div>
       </DialogContent>
     </Dialog>
