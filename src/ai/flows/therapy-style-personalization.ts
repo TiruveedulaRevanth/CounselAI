@@ -12,6 +12,11 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
+const MessageSchema = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z.string(),
+});
+
 const PersonalizeTherapyStyleInputSchema = z.object({
   therapyStyle: z
     .string()
@@ -19,6 +24,7 @@ const PersonalizeTherapyStyleInputSchema = z.object({
       'A description of the desired therapy style, including techniques and approaches.'
     ),
   userInput: z.string().describe('The user input or question.'),
+  history: z.array(MessageSchema).optional().describe("The user's recent conversation history. The last message is the user's current input."),
 });
 export type PersonalizeTherapyStyleInput = z.infer<
   typeof PersonalizeTherapyStyleInputSchema
@@ -85,7 +91,21 @@ Before responding to the user, you MUST use the checkForMedicalQueryTool to dete
       - **Do Not Suppress:** Your goal is never to "calm them down" or suppress their joy. Instead, you are helping them connect with their body and thoughts to ensure their well-being, providing a safe space for their high energy.
 `,
   prompt: `Therapy Style: {{{therapyStyle}}}
-User Input: {{{userInput}}}
+
+Conversation History:
+{{#if history}}
+  {{#each history}}
+    {{#if (eq this.role "user")}}
+      User: {{{this.content}}}
+    {{else}}
+      CounselAI: {{{this.content}}}
+    {{/if}}
+  {{/each}}
+{{else}}
+  No history yet. This is the beginning of the conversation.
+{{/if}}
+
+Current User Input: {{{userInput}}}
 `,
 });
 

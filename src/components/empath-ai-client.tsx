@@ -161,10 +161,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
       }
     } catch (error) {
       console.error("Failed to load chats from local storage:", error);
-      // Fallback: create a new chat if there's an error and user is logged in
-      if (localStorage.getItem("counselai-signed-in")) {
-        createNewChat();
-      }
+       setActiveChatId(null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -352,10 +349,10 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
   };
 
   const handleSend = async (text: string) => {
-    if (!text.trim() || isLoading || !activeChatId) return;
+    if (!text.trim() || isLoading || !activeChatId || !activeChat) return;
   
     const currentChatId = activeChatId;
-    const isFirstMessage = (activeChat?.messages.length ?? 0) === 0;
+    const isFirstMessage = activeChat.messages.length === 0;
   
     const newUserMessage: Message = {
       id: Date.now().toString(),
@@ -363,6 +360,9 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
       content: text,
     };
   
+    // Create a snapshot of the history BEFORE adding the new user message
+    const history = activeChat.messages.map(({ role, content }) => ({ role, content }));
+
     setChats(prev =>
       prev.map(chat =>
         chat.id === currentChatId
@@ -407,6 +407,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
       const aiResult = await personalizeTherapyStyle({
         therapyStyle: therapyStyle,
         userInput: text,
+        history: history, // Pass the conversation history
       });
   
       if (aiResult.response) {
@@ -790,7 +791,3 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
     </TooltipProvider>
   );
 }
-
-    
-
-    
