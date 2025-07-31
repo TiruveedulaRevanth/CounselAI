@@ -19,7 +19,7 @@ const ResourceSchema = z.object({
   id: z.string(),
   title: z.string(),
   description: z.string(),
-  category: z.enum(['Anxiety', 'Depression', 'Sleep', 'Stress', 'Relationships']),
+  category: z.enum(['Anxiety', 'Depression', 'Sleep', 'Stress', 'Relationships', 'Gratitude', 'Grief', 'Mindfulness']),
   type: z.enum(['article', 'video']),
   keywords: z.array(z.string()),
 });
@@ -37,10 +37,10 @@ const resourcesData = [
     {
       id: 'anxiety-1',
       title: 'Understanding Anxiety and Panic Attacks',
-      description: 'Learn the difference between anxiety and panic attacks, and common triggers.',
+      description: 'A deep dive into the mechanisms of anxiety, its symptoms, and how panic attacks differ.',
       category: 'Anxiety',
       type: 'article',
-      keywords: ['anxiety', 'panic attacks', 'stress', 'fear', 'worry'],
+      keywords: ['anxiety', 'panic attacks', 'stress', 'fear', 'worry', 'symptoms'],
     },
     {
       id: 'anxiety-2',
@@ -53,18 +53,18 @@ const resourcesData = [
     {
       id: 'depression-1',
       title: 'What is Depression?',
-      description: 'An overview of what depression is, its symptoms, and causes.',
+      description: 'A comprehensive overview of depression, its symptoms, causes, and the importance of seeking help.',
       category: 'Depression',
       type: 'article',
       keywords: ['depression', 'sadness', 'low mood', 'mental health', 'hopelessness'],
     },
     {
       id: 'sleep-1',
-      title: '8 Tips for a Better Night\'s Sleep',
-      description: 'Simple, actionable tips to improve your sleep hygiene and get more restful sleep.',
+      title: 'A Deeper Dive into Better Sleep',
+      description: 'Beyond basic tips, understand the science of sleep and advanced strategies for a truly restful night.',
       category: 'Sleep',
       type: 'article',
-      keywords: ['sleep', 'insomnia', 'rest', 'sleep hygiene', 'tired'],
+      keywords: ['sleep', 'insomnia', 'rest', 'sleep hygiene', 'circadian rhythm'],
     },
     {
       id: 'stress-1',
@@ -76,11 +76,35 @@ const resourcesData = [
     },
     {
       id: 'relationships-1',
-      title: 'Building Healthy Relationships',
-      description: 'Learn the foundations of healthy communication and boundaries.',
+      title: 'The Blueprint for Healthy Relationships',
+      description: 'Explore the core components of healthy relationships, from communication to trust.',
       category: 'Relationships',
       type: 'article',
-      keywords: ['relationships', 'communication', 'boundaries', 'love', 'conflict', 'breakup'],
+      keywords: ['relationships', 'communication', 'boundaries', 'love', 'conflict', 'breakup', 'trust'],
+    },
+    {
+        id: 'gratitude-1',
+        title: 'The Science and Practice of Gratitude',
+        description: 'Learn how practicing gratitude can rewire your brain for happiness and resilience.',
+        category: 'Gratitude',
+        type: 'article',
+        keywords: ['gratitude', 'happiness', 'mindfulness', 'journaling', 'well-being', 'positive thinking'],
+    },
+    {
+        id: 'grief-1',
+        title: 'Navigating the Complex Path of Grief',
+        description: 'Understanding that grief is a unique and non-linear journey.',
+        category: 'Grief',
+        type: 'article',
+        keywords: ['grief', 'loss', 'bereavement', 'sadness', 'coping', 'mourning'],
+    },
+    {
+        id: 'mindfulness-1',
+        title: 'An Introduction to Mindfulness',
+        description: 'Learn the core principles of mindfulness and simple exercises to bring more presence to your daily life.',
+        category: 'Mindfulness',
+        type: 'article',
+        keywords: ['mindfulness', 'meditation', 'presence', 'awareness', 'stress reduction', 'focus'],
     },
   ];
 
@@ -131,3 +155,5 @@ const suggestResourceFlow = ai.defineFlow(
     return {};
   }
 );
+
+    
