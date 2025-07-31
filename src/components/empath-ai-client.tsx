@@ -24,7 +24,7 @@ import {
   SidebarGroupLabel,
   SidebarMenuAction,
 } from "@/components/ui/sidebar";
-import { subDays, isToday, isYesterday, isAfter } from 'date-fns';
+import { subDays, isToday, isYesterday, isAfter, startOfMonth, startOfWeek } from 'date-fns';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +36,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { BrainLogo } from "./brain-logo";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -183,6 +190,45 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
             }
         }
         return remainingChats;
+    });
+  };
+
+  const handleBulkDelete = (timeframe: 'today' | 'week' | 'month' | 'all') => {
+    const now = new Date();
+    let chatsToKeep: Chat[] = [];
+  
+    if (timeframe === 'all') {
+      // handled by setting chatsToKeep to []
+    } else {
+      chatsToKeep = chats.filter(chat => {
+        const chatDate = new Date(chat.createdAt);
+        if (timeframe === 'today') {
+          return !isToday(chatDate);
+        }
+        if (timeframe === 'week') {
+          const start = startOfWeek(now);
+          return chatDate < start;
+        }
+        if (timeframe === 'month') {
+          const start = startOfMonth(now);
+          return chatDate < start;
+        }
+        return true;
+      });
+    }
+  
+    setChats(chatsToKeep);
+  
+    if (chatsToKeep.length === 0) {
+      const newChatId = createNewChat();
+      setActiveChatId(newChatId);
+    } else if (!chatsToKeep.some(c => c.id === activeChatId)) {
+      setActiveChatId(chatsToKeep[0].id);
+    }
+  
+    toast({
+      title: "Chats Deleted",
+      description: `Your chats have been successfully deleted.`,
     });
   };
 
@@ -435,6 +481,34 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
   }, [chats]);
 
 
+  const BulkDeleteDialog = ({
+    timeframe,
+    title,
+    description,
+    children,
+  }: {
+    timeframe: 'today' | 'week' | 'month' | 'all';
+    title: string;
+    description: string;
+    children: React.ReactNode;
+  }) => (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={() => handleBulkDelete(timeframe)}>
+            Continue
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
   return (
     <>
        <SettingsDialog
@@ -484,7 +558,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
                                         <AlertDialogHeader>
                                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            This action cannot be undone. This will permanently delete your
+                                            This action cannot be undone. This will permanently delete this
                                             chat history.
                                         </AlertDialogDescription>
                                         </AlertDialogHeader>
@@ -513,6 +587,45 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
             </div>
             <div className="flex items-center gap-2">
                 <ThemeToggle />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <Trash2 className="h-5 w-5" />
+                      <span className="sr-only">Delete Chats</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <BulkDeleteDialog
+                      timeframe="today"
+                      title="Delete Today's Chats?"
+                      description="This will permanently delete all conversations from today."
+                    >
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Delete Today</DropdownMenuItem>
+                    </BulkDeleteDialog>
+                    <BulkDeleteDialog
+                      timeframe="week"
+                      title="Delete This Week's Chats?"
+                      description="This will permanently delete all conversations from the past 7 days."
+                    >
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Delete Last 7 Days</DropdownMenuItem>
+                    </BulkDeleteDialog>
+                    <BulkDeleteDialog
+                      timeframe="month"
+                      title="Delete This Month's Chats?"
+                      description="This will permanently delete all conversations from this month."
+                    >
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Delete This Month</DropdownMenuItem>
+                    </BulkDeleteDialog>
+                    <DropdownMenuSeparator />
+                     <BulkDeleteDialog
+                      timeframe="all"
+                      title="Delete All Chats?"
+                      description="This action is irreversible and will permanently delete all of your chat history."
+                    >
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">Delete All History</DropdownMenuItem>
+                    </BulkDeleteDialog>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}>
                     <Settings className="h-5 w-5" />
                     <span className="sr-only">Settings</span>
@@ -600,5 +713,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
     </>
   );
 }
+
+    
 
     
