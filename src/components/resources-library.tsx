@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "./ui/scroll-area";
 import ResourceCard from "./resource-card";
 import { Library } from "lucide-react";
+import { Button } from "./ui/button";
 
 interface ResourcesLibraryProps {
   isOpen: boolean;
