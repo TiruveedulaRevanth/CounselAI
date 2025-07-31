@@ -14,29 +14,21 @@ interface ResourceCardProps {
 
 export default function ResourceCard({ resource, onReadMore }: ResourceCardProps) {
   const gradients = {
-    Anxiety: "from-blue-200 to-cyan-200",
-    Depression: "from-indigo-200 to-purple-200",
-    Sleep: "from-slate-300 to-gray-400",
-    Stress: "from-amber-200 to-orange-200",
-    Relationships: "from-pink-200 to-rose-200",
-    Gratitude: "from-yellow-200 to-lime-200",
-    Grief: "from-gray-300 to-blue-gray-300",
-    Mindfulness: "from-teal-200 to-green-200",
-    'Self-Care': 'from-green-200 to-emerald-200',
+    'Core Mental Health': "from-sky-200 to-blue-200",
+    'Stress & Burnout': "from-amber-200 to-orange-200",
+    'Sleep': "from-slate-300 to-gray-400",
+    'Relationships': "from-pink-200 to-rose-200",
     'Academic/Work Pressure': 'from-orange-200 to-red-200',
+    'Self-Care': 'from-green-200 to-emerald-200',
     'Crisis Support': 'from-red-300 to-rose-300',
   };
   const darkGradients = {
-    Anxiety: "dark:from-blue-900 dark:to-cyan-900",
-    Depression: "dark:from-indigo-900 dark:to-purple-900",
-    Sleep: "dark:from-slate-800 dark:to-gray-700",
-    Stress: "dark:from-amber-900 dark:to-orange-900",
-    Relationships: "dark:from-pink-900 dark:to-rose-900",
-    Gratitude: "dark:from-yellow-900 dark:to-lime-900",
-    Grief: "dark:from-gray-800 dark:to-blue-gray-700",
-    Mindfulness: "dark:from-teal-900 dark:to-green-900",
-    'Self-Care': 'dark:from-green-900 dark:to-emerald-900',
+    'Core Mental Health': "dark:from-sky-900 dark:to-blue-900",
+    'Stress & Burnout': "dark:from-amber-900 dark:to-orange-900",
+    'Sleep': "dark:from-slate-800 dark:to-gray-700",
+    'Relationships': "dark:from-pink-900 dark:to-rose-900",
     'Academic/Work Pressure': 'dark:from-orange-900 dark:to-red-900',
+    'Self-Care': 'dark:from-green-900 dark:to-emerald-900',
     'Crisis Support': 'dark:from-red-800 dark:to-rose-800',
   }
 
@@ -58,10 +50,12 @@ export default function ResourceCard({ resource, onReadMore }: ResourceCardProps
       </CardHeader>
       <CardFooter className="mt-auto pt-4">
         <Button onClick={onReadMore} className="w-full">
-          {resource.type === 'video' ? <Video className="mr-2 h-4 w-4"/> : <BookOpen className="mr-2 h-4 w-4"/>}
-          {resource.type === 'video' ? 'Watch Video' : 'Read Article'}
+          {resource.videoUrl ? <Video className="mr-2 h-4 w-4"/> : <BookOpen className="mr-2 h-4 w-4"/>}
+          {resource.videoUrl ? 'Read & Watch' : 'Read Article'}
         </Button>
       </CardFooter>
     </Card>
   );
 }
+
+    
