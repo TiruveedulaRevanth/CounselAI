@@ -49,6 +49,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/t
 import MindfulToolkitDialog from "./mindful-toolkit-dialog";
 import EmergencyResourcesDialog from "./emergency-resources-dialog";
 import ResourcesLibrary from "./resources-library";
+import { isToday, isYesterday, isWithinInterval, subDays, startOfDay } from 'date-fns';
 
 
 declare global {
@@ -228,6 +229,34 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
   };
 
   const activeChat = useMemo(() => chats.find(chat => chat.id === activeChatId), [chats, activeChatId]);
+
+  const groupedChats = useMemo(() => {
+    const now = new Date();
+    const groups: { [key: string]: Chat[] } = {
+      "Today": [],
+      "Yesterday": [],
+      "Previous 7 Days": [],
+      "Previous 30 Days": [],
+      "Older": [],
+    };
+
+    chats.forEach(chat => {
+      const chatDate = new Date(chat.createdAt);
+      if (isToday(chatDate)) {
+        groups["Today"].push(chat);
+      } else if (isYesterday(chatDate)) {
+        groups["Yesterday"].push(chat);
+      } else if (isWithinInterval(chatDate, { start: subDays(now, 7), end: now })) {
+        groups["Previous 7 Days"].push(chat);
+      } else if (isWithinInterval(chatDate, { start: subDays(now, 30), end: now })) {
+        groups["Previous 30 Days"].push(chat);
+      } else {
+        groups["Older"].push(chat);
+      }
+    });
+
+    return Object.entries(groups).filter(([_, chats]) => chats.length > 0);
+  }, [chats]);
 
   const speakText = useCallback((text: string) => {
     if ('speechSynthesis' in window && selectedVoice) {
@@ -520,11 +549,11 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
         <SidebarContent className="flex-1">
           <ScrollArea className="h-full" dir="rtl">
             <div dir="ltr">
-                {chats.length > 0 && (
-                    <SidebarGroup>
-                        <SidebarGroupLabel>Recent</SidebarGroupLabel>
+                 {groupedChats.map(([groupName, groupChats]) => (
+                    <SidebarGroup key={groupName}>
+                        <SidebarGroupLabel>{groupName}</SidebarGroupLabel>
                         <SidebarMenu>
-                        {chats.map(chat => (
+                        {groupChats.map(chat => (
                             <SidebarMenuItem key={chat.id}>
                                 <SidebarMenuButton 
                                 onClick={() => setActiveChatId(chat.id)}
@@ -569,7 +598,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
                         ))}
                         </SidebarMenu>
                     </SidebarGroup>
-                )}
+                ))}
               </div>
             </ScrollArea>
         </SidebarContent>
