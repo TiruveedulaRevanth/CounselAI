@@ -548,7 +548,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
         </SidebarHeader>
         <SidebarContent className="flex-1">
           <ScrollArea className="h-full" dir="rtl">
-            <div dir="ltr">
+            <div dir="ltr" className="px-2">
                  {groupedChats.map(([groupName, groupChats]) => (
                     <SidebarGroup key={groupName}>
                         <SidebarGroupLabel>{groupName}</SidebarGroupLabel>
@@ -599,188 +599,126 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
                         </SidebarMenu>
                     </SidebarGroup>
                 ))}
-              </div>
-            </ScrollArea>
+            </div>
+          </ScrollArea>
         </SidebarContent>
         <SidebarFooter className="p-2">
-          <div className="flex flex-col gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="destructive" size="sm" onClick={() => setIsEmergencyOpen(true)} className="justify-start gap-2">
-                  <HeartCrack className="h-4 w-4" />
-                  <span className="group-data-[collapsible=icon]:hidden">Need Help?</span>
+            <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
+                 <Button variant="ghost" className="w-full justify-start gap-2 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/60 hover:text-red-700 dark:hover:text-red-300" onClick={() => setIsEmergencyOpen(true)}>
+                    <HeartCrack/>
+                    Need Help?
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right" align="center">
-                <p>Get Emergency Help</p>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="secondary" size="sm" onClick={() => setIsLibraryOpen(true)} className="justify-start gap-2">
-                  <Library className="h-4 w-4" />
-                  <span className="group-data-[collapsible=icon]:hidden">Library</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right" align="center">
-                <p>Resources Library</p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        </SidebarFooter>
-      </Sidebar>
-      <SidebarInset>
-        <div className="flex flex-col h-full bg-background font-body text-foreground">
-          <header className="flex items-center justify-between p-4 border-b shrink-0">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger />
-              <h1 className="text-xl font-bold font-headline">CounselAI</h1>
             </div>
-            <div className="flex items-center gap-2">
-                <ThemeToggle />
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={() => setIsToolkitOpen(true)}>
-                      <Sparkles className="h-5 w-5" />
-                      <span className="sr-only">Mindful Toolkit</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Mindful Toolkit</p>
-                  </TooltipContent>
-                </Tooltip>
-                 <BulkDeleteDialog>
+            <SidebarMenu>
+                <SidebarMenuItem>
+                    <SidebarMenuButton onClick={() => setIsLibraryOpen(true)}>
+                        <Library/>
+                        Resources
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                    <SidebarMenuButton onClick={() => setIsToolkitOpen(true)}>
+                        <Sparkles/>
+                        Mindful Toolkit
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                    <SidebarMenuButton onClick={() => setIsSettingsOpen(true)}>
+                        <Settings/>
+                        Settings
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                    <div className="flex-1" />
+                    <ThemeToggle />
+                    <BulkDeleteDialog>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                    <Trash2 />
+                                    <span className="sr-only">Delete all chats</span>
+                                </Button>
+                            </TooltipTrigger>
+                             <TooltipContent>
+                                <p>Delete all chats</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </BulkDeleteDialog>
                      <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                                <Trash2 className="h-5 w-5" />
-                                <span className="sr-only">Delete All Chats</span>
+                            <Button variant="ghost" size="icon" onClick={handleSignOut}>
+                                <LogOut/>
+                                <span className="sr-only">Sign Out</span>
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>Delete All Chats</p>
+                            <p>Sign Out</p>
                         </TooltipContent>
                     </Tooltip>
-                 </BulkDeleteDialog>
-                 <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}>
-                            <Settings className="h-5 w-5" />
-                            <span className="sr-only">Settings</span>
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Settings</p>
-                    </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={handleSignOut}>
-                            <LogOut className="h-5 w-5" />
-                            <span className="sr-only">Sign Out</span>
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Sign Out</p>
-                    </TooltipContent>
-                </Tooltip>
+                </SidebarMenuItem>
+            </SidebarMenu>
+        </SidebarFooter>
+      </Sidebar>
+      <SidebarInset>
+        <div className="flex flex-col h-screen">
+          <header className="flex items-center justify-between p-4 border-b">
+            <div>
+              <h2 className="text-lg font-semibold">{activeChat ? activeChat.name : "New Chat"}</h2>
+              <p className="text-xs text-muted-foreground">AI Model: {therapyStyles.find(s => s.prompt === therapyStyle)?.name || 'Default'}</p>
             </div>
+             <div className="flex items-center gap-2">
+                { isSpeaking ? (
+                    <Button variant="outline" size="icon" onClick={handleStopSpeaking}>
+                        <Square className="h-4 w-4" />
+                    </Button>
+                ) : (
+                    <Button 
+                        variant={isListening ? "destructive" : "outline"} 
+                        size="icon" 
+                        onClick={handleMicClick}
+                    >
+                        <Mic className="h-4 w-4"/>
+                    </Button>
+                )}
+                <Button onClick={() => handleSend(userInput)} disabled={isLoading || !userInput.trim()}>
+                  <Send className="h-4 w-4 mr-2"/>
+                  Send
+                </Button>
+             </div>
           </header>
-
-          <main className="flex-1 min-h-0 relative">
-             {activeChat && activeChat.messages.length > 0 ? (
-                <ScrollArea className="h-full">
-                  <div className="space-y-6 p-4 md:p-6 lg:p-8 max-w-4xl mx-auto w-full">
-                    {activeChat?.messages.map((msg) => (
-                      <ChatMessage key={msg.id} message={msg} onSpeak={speakText} userName={userName} />
-                    ))}
-                    {isListening && userInput && (
-                      <ChatMessage message={{id: 'interim', role: 'user', content: userInput}} isInterim userName={userName}/>
-                    )}
-                    {isLoading && <ChatMessage.Loading />}
-                    <div ref={messagesEndRef} />
-                  </div>
-                </ScrollArea>
-              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-4 h-full">
-                    <BrainLogo className="w-16 h-16 text-primary"/>
-                    <h2 className="text-2xl font-bold">{userName && (!activeChat || activeChat.messages.length === 0) ? `Welcome back, ${userName}`: 'Ready when you are.'}</h2>
-                    <p className="text-muted-foreground mt-2">Start a new conversation by typing below or using the microphone.</p>
+          <div className="flex-1 flex flex-col-reverse overflow-y-auto p-6 gap-6">
+            <div ref={messagesEndRef} />
+             {isLoading && <ChatMessage.Loading />}
+            {activeChat?.messages.slice().reverse().map(message => (
+              <ChatMessage 
+                key={message.id} 
+                message={message} 
+                userName={userName}
+                onSpeak={(text) => speakText(text)}
+               />
+            ))}
+            {chats.length === 0 || !activeChat || activeChat.messages.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center">
+                    <BrainLogo className="w-24 h-24 text-primary opacity-20 mb-4"/>
+                    <h2 className="text-2xl font-bold">CounselAI</h2>
+                    <p className="text-muted-foreground">How can I help you today, {userName}?</p>
                 </div>
-              )}
-          </main>
-
-          <footer className="p-4 w-full shrink-0">
-            <div className="relative flex items-end gap-2 max-w-2xl mx-auto bg-card rounded-2xl border p-2 shadow-sm">
-               <Textarea
-                  value={userInput}
-                  onChange={(e) => setUserInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Ask anything..."
-                  className="flex-1 resize-none bg-transparent border-none text-base focus-visible:ring-0 focus-visible:ring-offset-0 pr-24"
-                  rows={1}
-                  disabled={isLoading || !activeChatId}
+            ) : null}
+          </div>
+          <footer className="p-4 border-t">
+            <div className="relative">
+              <Textarea
+                placeholder="Type your message..."
+                className="pr-16"
+                value={userInput}
+                onChange={e => setUserInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                rows={1}
               />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                  {isSpeaking ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-10 w-10 shrink-0 rounded-full"
-                            onClick={handleStopSpeaking}
-                          >
-                            <Square className="h-5 w-5" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Stop Speaking</p>
-                        </TooltipContent>
-                      </Tooltip>
-                  ) : (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className={`h-10 w-10 shrink-0 rounded-full ${
-                                isListening ? "text-red-500" : ""
-                            }`}
-                            onClick={handleMicClick}
-                            disabled={isLoading || !activeChatId}
-                          >
-                            <Mic className="h-5 w-5" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Use Microphone</p>
-                        </TooltipContent>
-                      </Tooltip>
-                  )}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                         <Button
-                            size="icon"
-                            onClick={() => handleSend(userInput)}
-                            disabled={!userInput.trim() || isLoading || !activeChatId}
-                            className="h-10 w-10 shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-gray-600"
-                        >
-                            <Send className="h-5 w-5" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Send Message</p>
-                    </TooltipContent>
-                  </Tooltip>
-              </div>
             </div>
-            <p className="text-xs text-muted-foreground text-center mt-2 h-4">
-                {isListening ? "Listening... Press mic again to stop." : isSpeaking ? "Speaking..." : isLoading ? "Thinking..." : activeChatId ? "CounselAI can make mistakes. Consider checking important information." : "Create a new chat to begin."}
-            </p>
           </footer>
         </div>
-       </SidebarInset>
+      </SidebarInset>
     </TooltipProvider>
   );
 }
