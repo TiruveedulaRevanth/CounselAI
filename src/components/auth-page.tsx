@@ -247,7 +247,7 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
                         </AvatarFallback>
                     </Avatar>
                     <CardTitle className="text-2xl">{selectedProfile?.name}</CardTitle>
-                    <CardDescription>{selectedProfile?.phone}</CardDescription>
+                    <CardDescription>Enter your password to continue.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...loginForm}>
@@ -409,5 +409,7 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
     </div>
   );
 }
+
+    
 
     
