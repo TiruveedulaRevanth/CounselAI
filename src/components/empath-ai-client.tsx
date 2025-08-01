@@ -137,6 +137,8 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isToolkitOpen, setIsToolkitOpen] = useState(false);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+  const [isDeleteProfileOpen, setIsDeleteProfileOpen] = useState(false);
+
   const [deleteScope, setDeleteScope] = useState<DeletionScope>("all");
 
 
@@ -184,6 +186,27 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         title: "Profile Updated",
         description: "Your name has been successfully updated.",
     });
+  };
+
+  const handleDeleteProfile = () => {
+    // Remove all data associated with the profile
+    localStorage.removeItem(`counselai-chats-${currentProfile.id}`);
+
+    // Get all profiles, filter out the current one
+    const storedProfiles = localStorage.getItem("counselai-profiles");
+    if (storedProfiles) {
+        const profiles: Profile[] = JSON.parse(storedProfiles);
+        const updatedProfiles = profiles.filter(p => p.id !== currentProfile.id);
+        localStorage.setItem("counselai-profiles", JSON.stringify(updatedProfiles));
+    }
+    
+    toast({
+        title: "Profile Deleted",
+        description: "Your profile and all data have been removed.",
+    });
+    
+    // Sign out to return to the auth page
+    handleSignOut();
   };
 
   // Load chats from local storage on initial render
@@ -600,10 +623,33 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     );
   }
 
+  const DeleteProfileDialog = () => (
+    <AlertDialog open={isDeleteProfileOpen} onOpenChange={setIsDeleteProfileOpen}>
+        <AlertDialogContent>
+        <AlertDialogHeader>
+            <AlertDialogTitle>Delete Your Profile?</AlertDialogTitle>
+            <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete your profile and all associated chat history.
+            </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={handleDeleteProfile}
+            >
+                Delete
+            </AlertDialogAction>
+        </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+  );
+
   return (
     <>
     <TooltipProvider>
       <BulkDeleteDialog />
+      <DeleteProfileDialog />
        <SettingsDialog
           availableVoices={availableVoices}
           selectedLanguage={selectedLanguage}
@@ -759,9 +805,14 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
                                 <Edit className="mr-2 h-4 w-4" />
                                 <span>Edit Profile</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={handleSignOut}>
+                             <DropdownMenuItem onClick={handleSignOut}>
                                 <LogOut className="mr-2 h-4 w-4" />
                                 <span>Sign Out</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                             <DropdownMenuItem onClick={() => setIsDeleteProfileOpen(true)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                <span>Delete Profile</span>
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
