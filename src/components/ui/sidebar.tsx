@@ -218,7 +218,7 @@ const Sidebar = React.forwardRef<
           "transition-all duration-300 ease-in-out",
           "data-[state=collapsed]:w-[var(--sidebar-width-icon)] data-[state=expanded]:w-[var(--sidebar-width)]",
           "data-[side=right]:order-last",
-          collapsible === 'offcanvas' && state === 'collapsed' ? "data-[collapsible=offcanvas][data-state=collapsed]:-ml-[var(--sidebar-width)]" : "",
+          "data-[collapsible=offcanvas][data-state=collapsed]:-ml-[var(--sidebar-width)]",
           "data-[side=right]:data-[collapsible=offcanvas][data-state=collapsed]:-mr-[var(--sidebar-width)]",
           className
         )}
@@ -254,7 +254,7 @@ const SidebarTrigger = React.forwardRef<
         data-sidebar="trigger"
         variant="ghost"
         size="icon"
-        className={cn("h-7 w-7", "md:flex hidden", className)}
+        className={cn("h-7 w-7", className)}
         onClick={(event) => {
             onClick?.(event)
             toggleSidebar()
@@ -410,8 +410,7 @@ const SidebarContent = React.forwardRef<
       ref={ref}
       data-sidebar="content"
       className={cn(
-        "flex min-h-0 flex-col gap-2 overflow-y-auto group-data-[collapsible=icon]:overflow-hidden",
-        "overflow-x-hidden",
+        "flex min-h-0 flex-col gap-2 overflow-x-hidden overflow-y-auto group-data-[collapsible=icon]:overflow-hidden",
         className
       )}
       {...props}
