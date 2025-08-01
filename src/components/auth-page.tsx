@@ -37,7 +37,6 @@ import {
 export type Profile = {
   id: string;
   name: string;
-  email: string;
   phone: string;
   password?: string; // Should be hashed in a real app
 }
@@ -49,7 +48,7 @@ interface AuthPageProps {
 }
 
 const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
+  phone: z.string().min(1, "Phone number is required"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -63,16 +62,6 @@ const passwordValidation = z.string()
 
 const createSignUpSchema = (existingProfiles: Profile[]) => z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address")
-    .refine(val => {
-        const allowedDomains = ['@gmail.com', '@yahoo.com', '@outlook.com'];
-        return allowedDomains.some(domain => val.endsWith(domain));
-    }, {
-        message: "Please use a valid email from Gmail, Yahoo, or Outlook.",
-    })
-    .refine(email => !existingProfiles.some(p => p.email === email), {
-        message: "This email is already registered.",
-    }),
   phone: z.string().regex(/^[6-9]\d{9}$/, {
       message: "Phone number must be a valid 10-digit Indian number.",
   })
@@ -92,7 +81,6 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
   const [authMode, setAuthMode] = useState<"initial" | "login" | "signup">("initial");
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [profileToDelete, setProfileToDelete] = useState<Profile | null>(null);
 
   const signUpSchema = createSignUpSchema(existingProfiles);
 
@@ -109,12 +97,12 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+    defaultValues: { phone: "", password: "" },
   });
 
   const signUpForm = useForm<z.infer<typeof signUpSchema>>({
     resolver: zodResolver(signUpSchema),
-    defaultValues: { name: "", email: "", phone: "", password: "", confirmPassword: "" },
+    defaultValues: { name: "", phone: "", password: "", confirmPassword: "" },
   });
 
   const handleLogin = (values: z.infer<typeof loginSchema>) => {
@@ -123,7 +111,7 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
     // In a real app, you'd call an API here to verify a hashed password.
     // For this prototype, we'll do a simple string comparison.
     if (values.password === selectedProfile.password) {
-        console.log("Login submitted for:", selectedProfile.email, "with password:", values.password);
+        console.log("Login submitted for:", selectedProfile.phone, "with password:", values.password);
         toast({
             title: "Login Successful",
             description: `Welcome back, ${selectedProfile.name}!`,
@@ -147,7 +135,6 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
     const newProfile: Profile = {
         id: `profile-${Date.now()}`,
         name: values.name,
-        email: values.email,
         phone: values.phone,
         password: values.password, // Storing password for login check
     };
@@ -163,7 +150,7 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
   
   const handleProfileSelect = (profile: Profile) => {
     setSelectedProfile(profile);
-    loginForm.setValue("email", profile.email);
+    loginForm.setValue("phone", profile.phone);
     setAuthMode("login");
   }
 
@@ -215,7 +202,7 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
                         </Avatar>
                         <div className="text-left">
                             <p className="font-bold">{profile.name}</p>
-                            <p className="text-sm text-muted-foreground -mt-1">{profile.email}</p>
+                            <p className="text-sm text-muted-foreground -mt-1">{profile.phone}</p>
                         </div>
                     </Button>
                     <AlertDialog>
@@ -264,7 +251,7 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
                         </AvatarFallback>
                     </Avatar>
                     <CardTitle className="text-2xl">{selectedProfile?.name}</CardTitle>
-                    <CardDescription>{selectedProfile?.email}</CardDescription>
+                    <CardDescription>{selectedProfile?.phone}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...loginForm}>
@@ -320,18 +307,6 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
                                 <FormItem>
                                     <FormControl>
                                         <Input placeholder="Full Name" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={signUpForm.control}
-                            name="email"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormControl>
-                                        <Input placeholder="Email address" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -419,3 +394,5 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
     </div>
   );
 }
+
+    
