@@ -65,7 +65,7 @@ You have two critical safety guidelines that you MUST follow before generating a
 Conversation History:
 {{#if history}}
   {{#each history}}
-    {{#if (eq this.role "user")}}
+    {{#if this.isUser}}
       User: {{{this.content}}}
     {{else}}
       CounselAI: {{{this.content}}}
@@ -86,8 +86,14 @@ const personalizeTherapyStyleFlow = ai.defineFlow(
     outputSchema: PersonalizeTherapyStyleOutputSchema,
   },
   async (input) => {
+    // Augment history with a boolean for easier templating
+    const historyWithRoles = input.history?.map(message => ({
+        ...message,
+        isUser: message.role === 'user'
+    }));
+
     try {
-      const {output} = await prompt(input);
+      const {output} = await prompt({...input, history: historyWithRoles});
       if (!output) {
         // This can happen if the model's response is filtered or empty.
         return { response: "I'm sorry, I was unable to generate a response. Could you please try rephrasing your message?" };
