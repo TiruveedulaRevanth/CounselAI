@@ -573,7 +573,6 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
         <SidebarHeader>
            <div className="flex items-center gap-2">
                 <SidebarGroupLabel className="text-lg font-bold text-foreground">Chats</SidebarGroupLabel>
-                <SidebarTrigger tooltip="Toggle chat history" />
            </div>
             <SidebarMenuButton
                 variant="ghost"
@@ -649,8 +648,10 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
         <div className="flex flex-col h-screen">
           <header className="flex items-center justify-between p-4 border-b">
             <div className="flex items-center gap-2">
+                <SidebarTrigger tooltip="Toggle chat history" className="md:hidden" />
                 <BrainLogo className="w-7 h-7"/>
                 <h2 className="text-lg font-semibold">CounselAI</h2>
+                <SidebarTrigger tooltip="Toggle chat history" className="hidden md:flex" />
             </div>
              <div className="flex items-center gap-1">
                 <ThemeToggle />

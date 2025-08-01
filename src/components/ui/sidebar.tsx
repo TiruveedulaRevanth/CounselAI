@@ -218,8 +218,8 @@ const Sidebar = React.forwardRef<
           "transition-all duration-300 ease-in-out",
           "data-[state=collapsed]:w-[var(--sidebar-width-icon)] data-[state=expanded]:w-[var(--sidebar-width)]",
           "data-[side=right]:order-last",
-          "data-[collapsible=offcanvas][data-state=collapsed]:-ml-[var(--sidebar-width)]",
-          "data-[side=right]:data-[collapsible=offcanvas][data-state=collapsed]:-mr-[var(--sidebar-width)]",
+          "group-data-[collapsible=offcanvas][data-state=collapsed]:-ml-[var(--sidebar-width)]",
+          "group-data-[side=right][data-collapsible=offcanvas][data-state=collapsed]:-mr-[var(--sidebar-width)]",
           className
         )}
         data-state={state}
@@ -306,7 +306,7 @@ const SidebarRail = React.forwardRef<
       className={cn(
         "absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border group-data-[side=left]:-right-4 group-data-[side=right]:left-0 sm:flex",
         "[[data-side=left]_&]:cursor-w-resize [[data-side=right]_&]:cursor-e-resize",
-        "[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
+        "[[data-side=left][data-state=collapsed]]/sidebar-wrapper:group-data-[collapsible=icon]:cursor-e-resize [[data-side=right][data-state=collapsed]]/sidebar-wrapper:group-data-[collapsible=icon]:cursor-w-resize",
         "group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full group-data-[collapsible=offcanvas]:hover:bg-sidebar-background",
         "[[data-side=left][data-collapsible=offcanvas]]/sidebar-wrapper:group-data-[state=collapsed]:-left-2",
         "[[data-side=right][data-collapsible=offcanvas]]/sidebar-wrapper:group-data-[state=collapsed]:-right-2",
@@ -410,7 +410,7 @@ const SidebarContent = React.forwardRef<
       ref={ref}
       data-sidebar="content"
       className={cn(
-        "flex min-h-0 flex-col gap-2 overflow-x-hidden overflow-y-auto group-data-[collapsible=icon]:overflow-hidden",
+        "flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden group-data-[collapsible=icon]:overflow-hidden",
         className
       )}
       {...props}
