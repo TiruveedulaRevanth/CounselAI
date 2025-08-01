@@ -505,7 +505,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
         <SidebarHeader>
            <div className="flex items-center gap-2">
             <SidebarTrigger />
-            <h1 className="text-xl font-bold">CounselAI</h1>
+            <SidebarGroupLabel className="text-lg font-bold text-foreground">Chats</SidebarGroupLabel>
           </div>
             <SidebarMenuButton
                 variant="ghost"
@@ -519,45 +519,43 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
         </SidebarHeader>
 
         <SidebarContent>
-           <SidebarGroup>
-                <SidebarGroupLabel>Chats</SidebarGroupLabel>
-                <ScrollArea className="flex-1 -mx-2">
-                 <div className="px-2">
-                    <SidebarMenu>
-                    {groupedChats.map(group => (
-                        <SidebarGroup key={group.label}>
-                            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-                            <SidebarMenu>
-                                {group.chats.map(chat => (
-                                    <SidebarMenuItem key={chat.id} className="mx-2">
-                                        <SidebarMenuButton 
-                                            onClick={() => setActiveChatId(chat.id)}
-                                            isActive={chat.id === activeChatId}
-                                            className="truncate"
-                                        >
-                                            {chat.name}
-                                        </SidebarMenuButton>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <SidebarMenuAction>
-                                                    <MoreHorizontal/>
-                                                </SidebarMenuAction>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent>
-                                                <DropdownMenuItem onClick={() => handleDeleteChat(chat.id)}>
-                                                    Delete
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </SidebarMenuItem>
-                                ))}
-                            </SidebarMenu>
-                        </SidebarGroup>
-                    ))}
-                    </SidebarMenu>
-                  </div>
-                </ScrollArea>
-           </SidebarGroup>
+            <ScrollArea className="flex-1 -mx-2">
+                <div className="px-2" dir="ltr">
+                <SidebarMenu>
+                {groupedChats.map(group => (
+                    <SidebarGroup key={group.label}>
+                        <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+                        <SidebarMenu>
+                            {group.chats.map(chat => (
+                                <SidebarMenuItem key={chat.id}>
+                                    <SidebarMenuButton 
+                                        onClick={() => setActiveChatId(chat.id)}
+                                        isActive={chat.id === activeChatId}
+                                        className="truncate"
+                                    >
+                                        {chat.name}
+                                    </SidebarMenuButton>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <SidebarMenuAction>
+                                                <MoreHorizontal/>
+                                            </SidebarMenuAction>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent>
+                                            <DropdownMenuItem onClick={() => handleDeleteChat(chat.id)} className="text-destructive">
+                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                Delete
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </SidebarMenuItem>
+                            ))}
+                        </SidebarMenu>
+                    </SidebarGroup>
+                ))}
+                </SidebarMenu>
+                </div>
+            </ScrollArea>
         </SidebarContent>
 
       </Sidebar>
@@ -580,12 +578,14 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
                             <Settings className="mr-2 h-4 w-4" />
                             <span>Voice & Style</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
-                           <ThemeToggle />
-                           <span className="ml-2">Toggle Theme</span>
+                         <DropdownMenuItem>
+                            <div className="flex items-center w-full">
+                                <ThemeToggle />
+                                <span className="ml-2">Toggle Theme</span>
+                            </div>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setIsBulkDeleteOpen(true)}>
+                        <DropdownMenuItem onClick={() => setIsBulkDeleteOpen(true)} className="text-destructive">
                             <Trash2 className="mr-2 h-4 w-4" />
                             <span>Delete All Chats</span>
                         </DropdownMenuItem>
