@@ -5,7 +5,7 @@ import { personalizeTherapyStyle } from "@/ai/flows/therapy-style-personalizatio
 import { summarizeChat } from "@/ai/flows/summarize-chat-flow";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Mic, Send, Settings, Trash2, MoreHorizontal, MessageSquarePlus, Square, Library, Sparkles, Siren } from "lucide-react";
+import { LogOut, Mic, Send, Settings, Trash2, MoreHorizontal, MessageSquarePlus, Square, Library, Sparkles, Siren, Edit } from "lucide-react";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import ChatMessage from "./chat-message";
 import SettingsDialog from "./settings-dialog";
@@ -52,6 +52,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "./ui/t
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { User } from "lucide-react";
 import type { Profile } from "./auth-page";
+import EditProfileDialog from "./edit-profile-dialog";
 
 
 declare global {
@@ -131,6 +132,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isToolkitOpen, setIsToolkitOpen] = useState(false);
@@ -148,11 +150,17 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
   const [selectedLanguage, setSelectedLanguage] = useState(supportedLanguages[0].code);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+  
+  const [currentProfile, setCurrentProfile] = useState(activeProfile);
+
+  useEffect(() => {
+    setCurrentProfile(activeProfile);
+  }, [activeProfile]);
 
   const speechRecognition = useRef<any>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const userName = activeProfile.name;
-  const storageKey = useMemo(() => `counselai-chats-${activeProfile.id}`, [activeProfile.id]);
+  const userName = currentProfile.name;
+  const storageKey = useMemo(() => `counselai-chats-${currentProfile.id}`, [currentProfile.id]);
 
 
   const handleSignOut = () => {
@@ -160,6 +168,23 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     setChats([]);
     setActiveChatId(null);
   }
+
+  const handleProfileUpdate = (updatedProfile: Profile) => {
+    // Update the profile in the main state
+    setCurrentProfile(updatedProfile);
+
+    // Persist this change to local storage where profiles are managed
+    const storedProfiles = localStorage.getItem("counselai-profiles");
+    if (storedProfiles) {
+        const profiles: Profile[] = JSON.parse(storedProfiles);
+        const updatedProfiles = profiles.map(p => p.id === updatedProfile.id ? updatedProfile : p);
+        localStorage.setItem("counselai-profiles", JSON.stringify(updatedProfiles));
+    }
+    toast({
+        title: "Profile Updated",
+        description: "Your name has been successfully updated.",
+    });
+  };
 
   // Load chats from local storage on initial render
   useEffect(() => {
@@ -590,6 +615,12 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
           isSettingsOpen={isSettingsOpen}
           setIsSettingsOpen={setIsSettingsOpen}
         />
+        <EditProfileDialog 
+            isOpen={isEditProfileOpen}
+            onOpenChange={setIsEditProfileOpen}
+            profile={currentProfile}
+            onProfileUpdate={handleProfileUpdate}
+        />
         <EmergencyResourcesDialog isOpen={isEmergencyOpen} onOpenChange={setIsEmergencyOpen} />
         <ResourcesLibrary isOpen={isLibraryOpen} onOpenChange={setIsLibraryOpen} />
         <MindfulToolkitDialog isOpen={isToolkitOpen} onOpenChange={setIsToolkitOpen} />
@@ -724,6 +755,10 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
                                 <p className="font-semibold text-sm text-foreground">{userName}</p>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => setIsEditProfileOpen(true)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                <span>Edit Profile</span>
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={handleSignOut}>
                                 <LogOut className="mr-2 h-4 w-4" />
                                 <span>Sign Out</span>
