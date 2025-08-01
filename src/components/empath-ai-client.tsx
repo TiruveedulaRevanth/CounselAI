@@ -5,7 +5,7 @@ import { personalizeTherapyStyle } from "@/ai/flows/therapy-style-personalizatio
 import { summarizeChat } from "@/ai/flows/summarize-chat-flow";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Mic, Plus, Send, Settings, Sparkles, Square, Trash2, HeartCrack, Library, MoreHorizontal } from "lucide-react";
+import { LogOut, Mic, Plus, Send, Settings, Square, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import ChatMessage from "./chat-message";
 import SettingsDialog from "./settings-dialog";
@@ -20,10 +20,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarGroup,
-  SidebarGroupLabel,
   SidebarMenuAction,
-  SidebarFooter,
 } from "@/components/ui/sidebar";
 import {
   AlertDialog,
@@ -36,20 +33,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { BrainLogo } from "./brain-logo";
 import { ThemeToggle } from "./theme-toggle";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
-import MindfulToolkitDialog from "./mindful-toolkit-dialog";
-import EmergencyResourcesDialog from "./emergency-resources-dialog";
-import ResourcesLibrary from "./resources-library";
-import { isToday, isYesterday, isWithinInterval, subDays, startOfDay } from 'date-fns';
 
 
 declare global {
@@ -68,7 +53,6 @@ export type Message = {
 export type Chat = {
   id: string;
   name: string;
-  createdAt: string;
   messages: Message[];
 };
 
@@ -125,10 +109,6 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isToolkitOpen, setIsToolkitOpen] = useState(false);
-  const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
-  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
-
 
   const [isListening, setIsListening] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -155,25 +135,12 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
     try {
       const savedChats = localStorage.getItem("counselai-chats");
       if (savedChats) {
-        const parsedChats = JSON.parse(savedChats) as Chat[];
-        if (Array.isArray(parsedChats) && parsedChats.length > 0) {
-           const updatedChats = parsedChats.map(chat => ({...chat, createdAt: chat.createdAt || new Date().toISOString()}));
-           updatedChats.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          setChats(updatedChats);
-          setActiveChatId(updatedChats[0].id);
-        } else {
-          // No chats found, let user create one.
-           setActiveChatId(null);
-        }
-      } else {
-         // No chats key, let user create one
-         setActiveChatId(null);
+        setChats(JSON.parse(savedChats));
+        setActiveChatId(JSON.parse(savedChats)[0]?.id || null);
       }
     } catch (error) {
       console.error("Failed to load chats from local storage:", error);
-       setActiveChatId(null);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Save chats to local storage whenever they change
@@ -185,17 +152,15 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
     }
   }, [chats]);
   
-  const createNewChat = useCallback(() => {
+  const createNewChat = () => {
     const newChat: Chat = {
       id: `chat-${Date.now()}`,
       name: "New Chat",
-      createdAt: new Date().toISOString(),
       messages: [],
     };
     setChats(prev => [newChat, ...prev]);
     setActiveChatId(newChat.id);
-    return newChat.id;
-  }, []);
+  };
 
   const handleDeleteChat = (chatId: string) => {
     setChats(prev => {
@@ -211,52 +176,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
     });
   };
 
-  const handleBulkDelete = (timeframe: 'all') => {
-    let chatsToKeep: Chat[] = [];
-  
-    if (timeframe !== 'all') {
-        // This function now only supports 'all'
-        return;
-    }
-  
-    setChats(chatsToKeep);
-    setActiveChatId(null);
-  
-    toast({
-      title: "All Chats Deleted",
-      description: `Your chat history has been cleared.`,
-    });
-  };
-
   const activeChat = useMemo(() => chats.find(chat => chat.id === activeChatId), [chats, activeChatId]);
-
-  const groupedChats = useMemo(() => {
-    const now = new Date();
-    const groups: { [key: string]: Chat[] } = {
-      "Today": [],
-      "Yesterday": [],
-      "Previous 7 Days": [],
-      "Previous 30 Days": [],
-      "Older": [],
-    };
-
-    chats.forEach(chat => {
-      const chatDate = new Date(chat.createdAt);
-      if (isToday(chatDate)) {
-        groups["Today"].push(chat);
-      } else if (isYesterday(chatDate)) {
-        groups["Yesterday"].push(chat);
-      } else if (isWithinInterval(chatDate, { start: subDays(now, 7), end: now })) {
-        groups["Previous 7 Days"].push(chat);
-      } else if (isWithinInterval(chatDate, { start: subDays(now, 30), end: now })) {
-        groups["Previous 30 Days"].push(chat);
-      } else {
-        groups["Older"].push(chat);
-      }
-    });
-
-    return Object.entries(groups).filter(([_, chats]) => chats.length > 0);
-  }, [chats]);
 
   const speakText = useCallback((text: string) => {
     if ('speechSynthesis' in window && selectedVoice) {
@@ -366,10 +286,21 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
   };
 
   const handleSend = async (text: string) => {
-    if (!text.trim() || isLoading || !activeChatId || !activeChat) return;
+    if (!text.trim() || isLoading) return;
   
-    const currentChatId = activeChatId;
-    const isFirstMessage = activeChat.messages.length === 0;
+    let currentChatId = activeChatId;
+    if (!currentChatId) {
+      const newChat: Chat = {
+        id: `chat-${Date.now()}`,
+        name: "New Chat",
+        messages: [],
+      };
+      setChats(prev => [newChat, ...prev]);
+      currentChatId = newChat.id;
+      setActiveChatId(newChat.id);
+    }
+  
+    const isFirstMessage = activeChat ? activeChat.messages.length === 0 : true;
   
     const newUserMessage: Message = {
       id: Date.now().toString(),
@@ -378,7 +309,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
     };
   
     // Create a snapshot of the history BEFORE adding the new user message
-    const history = activeChat.messages.map(({ role, content }) => ({ role, content }));
+    const history = activeChat ? activeChat.messages.map(({ role, content }) => ({ role, content })) : [];
 
     setChats(prev =>
       prev.map(chat =>
@@ -477,32 +408,8 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
     }
   }
 
-  const BulkDeleteDialog = ({
-    children,
-  }: {
-    children: React.ReactNode;
-  }) => (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete All Chats?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This action is irreversible and will permanently delete all of your chat history.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={() => handleBulkDelete('all')}>
-            Continue
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-
   return (
-    <TooltipProvider>
+    <>
        <SettingsDialog
           availableVoices={availableVoices}
           selectedLanguage={selectedLanguage}
@@ -514,150 +421,65 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
           isSettingsOpen={isSettingsOpen}
           setIsSettingsOpen={setIsSettingsOpen}
         />
-        <MindfulToolkitDialog
-          isOpen={isToolkitOpen}
-          onOpenChange={setIsToolkitOpen}
-        />
-        <EmergencyResourcesDialog
-          isOpen={isEmergencyOpen}
-          onOpenChange={setIsEmergencyOpen}
-        />
-        <ResourcesLibrary 
-            isOpen={isLibraryOpen}
-            onOpenChange={setIsLibraryOpen}
-        />
-      <Sidebar variant="inset">
+      <Sidebar>
         <SidebarHeader>
-          <div className="flex items-center justify-between">
-             <div className="flex items-center gap-2">
-                <SidebarTrigger />
-                <h1 className="text-xl font-bold font-headline">Chats</h1>
-              </div>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={() => createNewChat()}>
-                      <Plus className="h-5 w-5"/>
-                      <span className="sr-only">New Chat</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>New Chat</p>
-                </TooltipContent>
-              </Tooltip>
+          <div className="flex items-center gap-2">
+            <SidebarTrigger />
+            <h1 className="text-xl font-bold">CounselAI</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}>
+                <Settings />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleSignOut}>
+                <LogOut/>
+            </Button>
           </div>
         </SidebarHeader>
-        <SidebarContent className="flex-1">
-          <ScrollArea className="h-full">
-            <div className="px-2">
-                 {groupedChats.map(([groupName, groupChats]) => (
-                    <SidebarGroup key={groupName}>
-                        <SidebarGroupLabel>{groupName}</SidebarGroupLabel>
-                        <SidebarMenu>
-                        {groupChats.map(chat => (
-                            <SidebarMenuItem key={chat.id}>
-                                <SidebarMenuButton 
-                                onClick={() => setActiveChatId(chat.id)}
-                                isActive={chat.id === activeChatId}
-                                className="truncate"
-                                >
-                                {chat.name}
-                                </SidebarMenuButton>
-                                 <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <SidebarMenuAction showOnHover>
-                                            <MoreHorizontal/>
-                                        </SidebarMenuAction>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent>
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                    Delete
-                                                </DropdownMenuItem>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    This action cannot be undone. This will permanently delete this
-                                                    chat history.
-                                                </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleDeleteChat(chat.id)}>
-                                                    Continue
-                                                </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </SidebarMenuItem>
-                        ))}
-                        </SidebarMenu>
-                    </SidebarGroup>
-                ))}
-            </div>
+        <SidebarContent>
+          <Button className="w-full" onClick={createNewChat}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Chat
+          </Button>
+          <ScrollArea className="flex-1 -mx-2 mt-4">
+            <SidebarMenu className="px-2">
+              {chats.map(chat => (
+                <SidebarMenuItem key={chat.id}>
+                  <SidebarMenuButton 
+                    onClick={() => setActiveChatId(chat.id)}
+                    isActive={chat.id === activeChatId}
+                    className="truncate"
+                  >
+                    {chat.name}
+                  </SidebarMenuButton>
+                   <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                          <SidebarMenuAction>
+                              <Trash2/>
+                          </SidebarMenuAction>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                          <AlertDialogHeader>
+                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete this
+                              chat history.
+                          </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteChat(chat.id)}>
+                              Continue
+                          </AlertDialogAction>
+                          </AlertDialogFooter>
+                      </AlertDialogContent>
+                  </AlertDialog>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
           </ScrollArea>
         </SidebarContent>
-        <SidebarFooter className="p-2">
-            <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
-                 <Button variant="ghost" className="w-full justify-start gap-2 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/60 hover:text-red-700 dark:hover:text-red-300" onClick={() => setIsEmergencyOpen(true)}>
-                    <HeartCrack/>
-                    Need Help?
-                </Button>
-            </div>
-            <SidebarMenu>
-                <SidebarMenuItem>
-                    <SidebarMenuButton onClick={() => setIsLibraryOpen(true)}>
-                        <Library/>
-                        Resources
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-                 <SidebarMenuItem>
-                    <SidebarMenuButton onClick={() => setIsToolkitOpen(true)}>
-                        <Sparkles/>
-                        Mindful Toolkit
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                    <SidebarMenuButton onClick={() => setIsSettingsOpen(true)}>
-                        <Settings/>
-                        Settings
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-                 <SidebarMenuItem>
-                    <div className="flex-1" />
-                    <ThemeToggle />
-                    <BulkDeleteDialog>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                    <Trash2 />
-                                    <span className="sr-only">Delete all chats</span>
-                                </Button>
-                            </TooltipTrigger>
-                             <TooltipContent>
-                                <p>Delete all chats</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </BulkDeleteDialog>
-                     <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={handleSignOut}>
-                                <LogOut/>
-                                <span className="sr-only">Sign Out</span>
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Sign Out</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </SidebarMenuItem>
-            </SidebarMenu>
-        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <div className="flex flex-col h-screen">
@@ -697,13 +519,13 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
                 onSpeak={(text) => speakText(text)}
                />
             ))}
-            {chats.length === 0 || !activeChat || activeChat.messages.length === 0 ? (
+            {!activeChat && (
                 <div className="flex-1 flex flex-col items-center justify-center text-center">
                     <BrainLogo className="w-24 h-24 text-primary opacity-20 mb-4"/>
                     <h2 className="text-2xl font-bold">CounselAI</h2>
                     <p className="text-muted-foreground">How can I help you today, {userName}?</p>
                 </div>
-            ) : null}
+            )}
           </div>
           <footer className="p-4 border-t">
             <div className="relative">
@@ -719,6 +541,6 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
           </footer>
         </div>
       </SidebarInset>
-    </TooltipProvider>
+    </>
   );
 }

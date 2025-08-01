@@ -497,10 +497,10 @@ const SidebarMenuItem = React.forwardRef<
   <li
     ref={ref}
     data-sidebar="menu-item"
-    className={cn("group/menu-item relative flex items-center", className)}
+    className={cn("relative flex items-center", className)}
     {...props}
   />
-));
+))
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 const sidebarMenuButtonVariants = cva(
@@ -590,7 +590,7 @@ const SidebarMenuAction = React.forwardRef<
     asChild?: boolean
     showOnHover?: boolean
   }
->(({ className, asChild = false, showOnHover = false, ...props }, ref) => {
+>(({ className, asChild = false, showOnHover = true, ...props }, ref) => {
   const Comp = asChild ? Slot : "button"
 
   const actionButton = (
@@ -611,10 +611,10 @@ const SidebarMenuAction = React.forwardRef<
       )}
       {...props}
     />
-  );
+  )
 
-  return actionButton;
-});
+  return actionButton
+})
 SidebarMenuAction.displayName = "SidebarMenuAction"
 
 const SidebarMenuBadge = React.forwardRef<
