@@ -516,7 +516,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
         <ResourcesLibrary isOpen={isLibraryOpen} onOpenChange={setIsLibraryOpen} />
         <MindfulToolkitDialog isOpen={isToolkitOpen} onOpenChange={setIsToolkitOpen} />
 
-      <Sidebar>
+      <Sidebar collapsible="offcanvas">
         <SidebarHeader>
            <div className="flex items-center gap-2">
             <SidebarTrigger tooltip="Click to go back, hold to see history" />
