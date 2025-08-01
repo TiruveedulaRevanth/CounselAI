@@ -622,7 +622,6 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
              <div className="flex items-center gap-1">
                 <ThemeToggle />
                 <Button variant="ghost" size="icon" onClick={() => setIsToolkitOpen(true)}><Sprout size={20}/></Button>
-                <Button variant="ghost" size="icon" onClick={() => setIsLibraryOpen(true)}><Library size={20}/></Button>
                 <Button variant="ghost" size="icon" onClick={() => setIsBulkDeleteOpen(true)}><Trash2 size={20}/></Button>
                 <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}><Settings size={20}/></Button>
                 <Button variant="ghost" size="icon" onClick={handleSignOut}><LogOut size={20}/></Button>
