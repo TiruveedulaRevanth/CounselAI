@@ -5,7 +5,7 @@ import { personalizeTherapyStyle } from "@/ai/flows/therapy-style-personalizatio
 import { summarizeChat } from "@/ai/flows/summarize-chat-flow";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Mic, Send, Settings, Trash2, MoreHorizontal, MessageSquarePlus, Square } from "lucide-react";
+import { LogOut, Mic, Send, Settings, Trash2, MoreHorizontal, MessageSquarePlus, Square, Library, Heart, LifeBuoy, Sprout } from "lucide-react";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import ChatMessage from "./chat-message";
 import SettingsDialog from "./settings-dialog";
@@ -24,6 +24,7 @@ import {
   SidebarSeparator,
   SidebarGroup,
   SidebarGroupLabel,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -45,6 +46,11 @@ import {
 import { BrainLogo } from "./brain-logo";
 import { ThemeToggle } from "./theme-toggle";
 import { isToday, isYesterday, isWithinInterval, subDays } from "date-fns";
+import EmergencyResourcesDialog from "./emergency-resources-dialog";
+import ResourcesLibrary from "./resources-library";
+import { Avatar, AvatarFallback } from "./ui/avatar";
+import MindfulToolkitDialog from "./mindful-toolkit-dialog";
+import { User } from "lucide-react";
 
 
 declare global {
@@ -61,7 +67,7 @@ export type Message = {
 };
 
 export type Chat = {
-  id: string;
+  id:string;
   name: string;
   messages: Message[];
   createdAt: number;
@@ -91,7 +97,7 @@ export const therapyStyles = [
   {
     name: "Narrative Therapist",
     prompt:
-      "Use narrative therapy principles at a moderate 8.5/10 level. Keep the tone accessible and emotionally resonant. Help the user reflect on their life story and the narratives they hold about themselves. Ask open-ended questions that externalize the problem (e.g., 'What has anxiety been telling you to do?'). Encourage them to identify their values and moments of strength or resistance to the problem's influence. Focus on helping them see themselves as the author of their own life story, avoiding overly academic language. Use their name to make the exploration feel personal.",
+      "Use narrative therapy principles at a moderate 8.5/10 level. Keep the tone accessible and emotionally resonant. Help the user reflect on their life story and the narratives they hold about themselves. Ask open-ended questions that externalize the problem (e.g., 'What has anxiety been telling you to do?'). Encourage them to identify their values and strength or resistance to the problem's influence. Focus on helping them see themselves as the author of their own life story, avoiding overly academic language. Use their name to make the exploration feel personal.",
   },
   {
     name: "Motivational Interviewing",
@@ -119,7 +125,11 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
   const { toast } = useToast();
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [isToolkitOpen, setIsToolkitOpen] = useState(false);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
 
   const [isListening, setIsListening] = useState(false);
@@ -148,12 +158,12 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
       const savedChats = localStorage.getItem("counselai-chats");
       if (savedChats) {
         const parsedChats = JSON.parse(savedChats) as Chat[];
-        // Ensure all chats have a createdAt timestamp
         const chatsWithTimestamps = parsedChats.map(c => ({...c, createdAt: c.createdAt || Date.now() }));
         setChats(chatsWithTimestamps);
 
         if (chatsWithTimestamps.length > 0) {
-           setActiveChatId(chatsWithTimestamps[0].id);
+           const sortedChats = chatsWithTimestamps.sort((a, b) => b.createdAt - a.createdAt);
+           setActiveChatId(sortedChats[0].id);
         }
       }
     } catch (error) {
@@ -177,7 +187,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
       messages: [],
       createdAt: Date.now(),
     };
-    setChats(prev => [newChat, ...prev]);
+    setChats(prev => [newChat, ...prev.sort((a, b) => b.createdAt - a.createdAt)]);
     setActiveChatId(newChat.id);
   };
 
@@ -211,7 +221,9 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
     const last30Days: Chat[] = [];
     const older: Chat[] = [];
 
-    chats.forEach(chat => {
+    const sortedChats = chats.sort((a, b) => b.createdAt - a.createdAt);
+
+    sortedChats.forEach(chat => {
       const chatDate = new Date(chat.createdAt);
       if (isToday(chatDate)) {
         today.push(chat);
@@ -367,7 +379,6 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
       content: text,
     };
   
-    // Create a snapshot of the history BEFORE adding the new user message
     const history = activeChat ? activeChat.messages.map(({ role, content }) => ({ role, content })) : [];
 
     setChats(prev =>
@@ -415,7 +426,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
         userName: userName,
         therapyStyle: therapyStyle,
         userInput: text,
-        history: history, // Pass the conversation history
+        history: history,
       });
   
       if (aiResult.response) {
@@ -501,10 +512,14 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
           isSettingsOpen={isSettingsOpen}
           setIsSettingsOpen={setIsSettingsOpen}
         />
+        <EmergencyResourcesDialog isOpen={isEmergencyOpen} onOpenChange={setIsEmergencyOpen} />
+        <ResourcesLibrary isOpen={isLibraryOpen} onOpenChange={setIsLibraryOpen} />
+        <MindfulToolkitDialog isOpen={isToolkitOpen} onOpenChange={setIsToolkitOpen} />
+
       <Sidebar>
         <SidebarHeader>
            <div className="flex items-center gap-2">
-            <SidebarTrigger />
+            <SidebarTrigger tooltip="Click to go back, hold to see history" />
             <SidebarGroupLabel className="text-lg font-bold text-foreground">Chats</SidebarGroupLabel>
           </div>
             <SidebarMenuButton
@@ -520,7 +535,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
 
         <SidebarContent>
             <ScrollArea className="flex-1 -mx-2">
-                <div className="px-2" dir="ltr">
+                <div className="px-2">
                 <SidebarMenu>
                 {groupedChats.map(group => (
                     <SidebarGroup key={group.label}>
@@ -558,43 +573,59 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
             </ScrollArea>
         </SidebarContent>
 
+        <SidebarFooter className="p-2 space-y-2">
+            <Button variant="destructive" className="w-full justify-start gap-2" onClick={() => setIsEmergencyOpen(true)}>
+                <Heart size={16}/> Need Help?
+            </Button>
+            <Button variant="outline" className="w-full justify-start gap-2" onClick={() => setIsLibraryOpen(true)}>
+                <Library size={16}/> Library
+            </Button>
+            <SidebarSeparator />
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <div className="flex items-center gap-2 p-2 rounded-md hover:bg-muted cursor-pointer">
+                        <Avatar className="h-8 w-8">
+                            <AvatarFallback className="bg-destructive text-destructive-foreground font-bold">
+                                {userName ? userName.charAt(0).toUpperCase() : <User size={20} />}
+                            </AvatarFallback>
+                        </Avatar>
+                        <span className="font-semibold truncate">{userName}</span>
+                    </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="top" align="start" className="w-56">
+                     <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Voice & Style</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                        <div className="flex items-center w-full">
+                            <ThemeToggle />
+                            <span className="ml-2">Toggle Theme</span>
+                        </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>Sign Out</span>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <div className="flex flex-col h-screen">
           <header className="flex items-center justify-between p-4 border-b">
-            <div>
-              <h2 className="text-lg font-semibold">{activeChat ? activeChat.name : "New Chat"}</h2>
-              <p className="text-xs text-muted-foreground">AI Model: {therapyStyles.find(s => s.prompt === therapyStyle)?.name || 'Default'}</p>
+            <div className="flex items-center gap-2">
+                <BrainLogo className="w-7 h-7"/>
+                <h2 className="text-lg font-semibold">CounselAI</h2>
             </div>
-             <div className="flex items-center gap-2">
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                            <Settings className="h-5 w-5" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
-                            <Settings className="mr-2 h-4 w-4" />
-                            <span>Voice & Style</span>
-                        </DropdownMenuItem>
-                         <DropdownMenuItem>
-                            <div className="flex items-center w-full">
-                                <ThemeToggle />
-                                <span className="ml-2">Toggle Theme</span>
-                            </div>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setIsBulkDeleteOpen(true)} className="text-destructive">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            <span>Delete All Chats</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={handleSignOut}>
-                            <LogOut className="mr-2 h-4 w-4" />
-                            <span>Sign Out</span>
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+             <div className="flex items-center gap-1">
+                <ThemeToggle />
+                <Button variant="ghost" size="icon" onClick={() => setIsToolkitOpen(true)}><Sprout size={20}/></Button>
+                <Button variant="ghost" size="icon" onClick={() => setIsLibraryOpen(true)}><Library size={20}/></Button>
+                <Button variant="ghost" size="icon" onClick={() => setIsBulkDeleteOpen(true)}><Trash2 size={20}/></Button>
+                <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}><Settings size={20}/></Button>
+                <Button variant="ghost" size="icon" onClick={handleSignOut}><LogOut size={20}/></Button>
              </div>
           </header>
           <div className="flex-1 flex flex-col-reverse overflow-y-auto p-6 gap-6">
@@ -610,46 +641,48 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
             ))}
             {!activeChat && (
                 <div className="flex-1 flex flex-col items-center justify-center text-center">
-                    <BrainLogo className="w-24 h-24 text-primary opacity-20 mb-4"/>
-                    <h2 className="text-2xl font-bold">CounselAI</h2>
-                    <p className="text-muted-foreground">How can I help you today, {userName}?</p>
+                    <BrainLogo className="w-24 h-24 text-primary mb-4"/>
+                    <h2 className="text-2xl font-bold">Welcome back, {userName}</h2>
+                    <p className="text-muted-foreground">Start a new conversation by typing below or using the microphone.</p>
                 </div>
             )}
           </div>
           <footer className="p-4 border-t">
-            <div className="relative">
+            <div className="relative max-w-2xl mx-auto">
                 <Textarea
-                    placeholder="Type your message..."
+                    placeholder="Ask anything..."
                     className="pr-24"
                     value={userInput}
                     onChange={e => setUserInput(e.target.value)}
                     onKeyDown={handleKeyDown}
                     rows={1}
                 />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                     { isSpeaking ? (
-                        <Button variant="outline" size="icon" onClick={handleStopSpeaking}>
-                            <Square className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" onClick={handleStopSpeaking}>
+                            <Square className="h-5 w-5" />
                         </Button>
                     ) : (
                         <Button 
-                            variant={isListening ? "destructive" : "outline"} 
+                            variant="ghost"
                             size="icon" 
                             onClick={handleMicClick}
+                            className={isListening ? "text-red-500" : ""}
                         >
-                            <Mic className="h-4 w-4"/>
+                            <Mic className="h-5 w-5"/>
                         </Button>
                     )}
-                    <Button onClick={() => handleSend( userInput)} disabled={isLoading || !userInput.trim()}>
-                        <Send className="h-4 w-4"/>
+                    <Button variant="ghost" size="icon" onClick={() => handleSend( userInput)} disabled={isLoading || !userInput.trim()}>
+                        <Send className="h-5 w-5"/>
                     </Button>
                 </div>
             </div>
+            <p className="text-xs text-muted-foreground text-center mt-2">
+                CounselAI can make mistakes. Consider checking important information.
+            </p>
           </footer>
         </div>
       </SidebarInset>
     </>
   );
 }
-
-    
