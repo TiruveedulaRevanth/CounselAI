@@ -5,7 +5,7 @@ import { personalizeTherapyStyle } from "@/ai/flows/therapy-style-personalizatio
 import { summarizeChat } from "@/ai/flows/summarize-chat-flow";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Mic, Send, Settings, Trash2, MoreHorizontal, MessageSquarePlus, Square, Library, Heart, LifeBuoy, Sprout } from "lucide-react";
+import { LogOut, Mic, Send, Settings, Trash2, MoreHorizontal, MessageSquarePlus, Square, Library, Heart, Sprout } from "lucide-react";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import ChatMessage from "./chat-message";
 import SettingsDialog from "./settings-dialog";
@@ -21,7 +21,6 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarMenuAction,
-  SidebarSeparator,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarFooter,
@@ -45,12 +44,10 @@ import {
 } from "@/components/ui/alert-dialog"
 import { BrainLogo } from "./brain-logo";
 import { ThemeToggle } from "./theme-toggle";
-import { isToday, isYesterday, isWithinInterval, subDays } from "date-fns";
+import { isToday, isYesterday, isWithinInterval, subDays, startOfToday, startOfDay, sub } from "date-fns";
 import EmergencyResourcesDialog from "./emergency-resources-dialog";
 import ResourcesLibrary from "./resources-library";
-import { Avatar, AvatarFallback } from "./ui/avatar";
 import MindfulToolkitDialog from "./mindful-toolkit-dialog";
-import { User } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 
@@ -73,6 +70,9 @@ export type Chat = {
   messages: Message[];
   createdAt: number;
 };
+
+type DeletionScope = "today" | "week" | "month" | "all";
+
 
 export const therapyStyles = [
   {
@@ -132,6 +132,8 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isToolkitOpen, setIsToolkitOpen] = useState(false);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+  const [deleteScope, setDeleteScope] = useState<DeletionScope>("all");
+
 
   const [isListening, setIsListening] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -207,11 +209,49 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
     });
   };
 
-  const handleBulkDelete = () => {
-    setChats([]);
-    setActiveChatId(null);
+  const handleScopedDelete = () => {
+    const now = Date.now();
+    let chatsToKeep: Chat[];
+
+    switch(deleteScope) {
+        case 'today':
+            chatsToKeep = chats.filter(chat => !isToday(new Date(chat.createdAt)));
+            break;
+        case 'week':
+            const last7Days = sub(now, { days: 7 });
+            chatsToKeep = chats.filter(chat => new Date(chat.createdAt) < last7Days);
+            break;
+        case 'month':
+             const last30Days = sub(now, { days: 30 });
+             chatsToKeep = chats.filter(chat => new Date(chat.createdAt) < last30Days);
+            break;
+        case 'all':
+            chatsToKeep = [];
+            break;
+        default:
+            chatsToKeep = chats;
+            break;
+    }
+    
+    setChats(chatsToKeep);
+
+    if (chatsToKeep.length > 0) {
+        const isCurrentChatDeleted = !chatsToKeep.some(c => c.id === activeChatId);
+        if(isCurrentChatDeleted) {
+            setActiveChatId(chatsToKeep.sort((a,b) => b.createdAt - a.createdAt)[0].id);
+        }
+    } else {
+        setActiveChatId(null);
+    }
+    
     setIsBulkDeleteOpen(false);
   }
+
+  const openDeleteDialog = (scope: DeletionScope) => {
+    setDeleteScope(scope);
+    setIsBulkDeleteOpen(true);
+  }
+
 
   const activeChat = useMemo(() => chats.find(chat => chat.id === activeChatId), [chats, activeChatId]);
 
@@ -483,25 +523,32 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
     }
   }
 
-  const BulkDeleteDialog = () => (
-    <AlertDialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-        <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete all
-            chat history.
-        </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
-        <AlertDialogAction onClick={handleBulkDelete}>
-            Continue
-        </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+  const BulkDeleteDialog = () => {
+    const scopeText = {
+        today: "all chats from today",
+        week: "all chats from the last 7 days",
+        month: "all chats from the last 30 days",
+        all: "all of your chat history"
+    }
+    return (
+        <AlertDialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete {scopeText[deleteScope]}.
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleScopedDelete}>
+                Continue
+            </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
     );
+  }
 
   return (
     <>
@@ -614,12 +661,26 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
                   </TooltipTrigger>
                   <TooltipContent><p>Mindful Toolkit</p></TooltipContent>
                 </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={() => setIsBulkDeleteOpen(true)}><Trash2 size={20}/></Button>
-                  </TooltipTrigger>
-                  <TooltipContent><p>Delete All Chats</p></TooltipContent>
-                </Tooltip>
+                <DropdownMenu>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon"><Trash2 size={20}/></Button>
+                            </DropdownMenuTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Delete Chats</p></TooltipContent>
+                    </Tooltip>
+                    <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => openDeleteDialog('today')}>Delete Today's Chats</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openDeleteDialog('week')}>Delete Last 7 Days' Chats</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openDeleteDialog('month')}>Delete Last 30 Days' Chats</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => openDeleteDialog('all')} className="text-destructive">
+                            Delete All Chats
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}><Settings size={20}/></Button>
@@ -675,7 +736,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
                         </Tooltip>
                     ) : (
                         <Tooltip>
-                            <TooltipTrigger asChild>
+                            <TooltipTrigger as Child>
                                 <Button 
                                     variant="ghost"
                                     size="icon" 
@@ -689,7 +750,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
                         </Tooltip>
                     )}
                     <Tooltip>
-                        <TooltipTrigger asChild>
+                        <TooltipTrigger as Child>
                             <Button variant="ghost" size="icon" onClick={() => handleSend( userInput)} disabled={isLoading || !userInput.trim()}>
                                 <Send className="h-5 w-5"/>
                             </Button>
@@ -707,5 +768,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
     </>
   );
 }
+
+    
 
     
