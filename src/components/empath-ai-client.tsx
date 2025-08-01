@@ -585,7 +585,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
         <ResourcesLibrary isOpen={isLibraryOpen} onOpenChange={setIsLibraryOpen} />
         <MindfulToolkitDialog isOpen={isToolkitOpen} onOpenChange={setIsToolkitOpen} />
 
-      <Sidebar>
+      <Sidebar collapsible="offcanvas">
         <SidebarHeader>
            <div className="flex items-center gap-2">
                 <SidebarGroupLabel className="text-lg font-bold text-foreground">Chats</SidebarGroupLabel>
