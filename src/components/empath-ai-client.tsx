@@ -648,9 +648,9 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
         <div className="flex flex-col h-screen overflow-hidden">
           <header className="flex items-center justify-between p-4 border-b shrink-0">
             <div className="flex items-center gap-2">
-                <SidebarTrigger tooltip="Toggle chat history" />
                 <BrainLogo className="w-7 h-7"/>
                 <h2 className="text-lg font-semibold">CounselAI</h2>
+                <SidebarTrigger tooltip="Toggle chat history" />
             </div>
              <div className="flex items-center gap-1">
                 <ThemeToggle />
@@ -694,7 +694,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
                 </Tooltip>
              </div>
           </header>
-          <div className="flex-1 flex flex-col-reverse overflow-y-auto p-6 gap-6">
+          <div className="flex-1 flex flex-col-reverse overflow-y-auto p-6 gap-6 min-h-0">
             <div ref={messagesEndRef} />
              {isLoading && <ChatMessage.Loading />}
             {activeChat?.messages.slice().reverse().map(message => (
