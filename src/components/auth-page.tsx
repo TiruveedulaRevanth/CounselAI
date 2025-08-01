@@ -8,6 +8,13 @@ import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   Form,
   FormControl,
   FormField,
@@ -37,6 +44,7 @@ import {
 export type Profile = {
   id: string;
   name: string;
+  region: string;
   phone: string;
   password?: string; // Should be hashed in a real app
 }
@@ -59,20 +67,47 @@ const passwordValidation = z.string()
     .regex(/[0-9]/, "Password must contain at least one number")
     .regex(/[^a-zA-Z0-9]/, "Password must contain at least one special character");
 
+const phoneValidationSchemas = {
+  IN: z.string().regex(/^[6-9]\d{9}$/, "Must be a valid 10-digit Indian number."),
+  US: z.string().regex(/^\d{10}$/, "Must be a valid 10-digit US number."),
+  GB: z.string().regex(/^07\d{9}$/, "Must be a valid 11-digit UK mobile number (starting with 07)."),
+  ES: z.string().regex(/^[679]\d{8}$/, "Must be a valid 9-digit Spanish number."),
+  FR: z.string().regex(/^0[67]\d{8}$/, "Must be a valid 10-digit French mobile number (starting with 06 or 07)."),
+  CN: z.string().regex(/^1\d{10}$/, "Must be a valid 11-digit Chinese mobile number (starting with 1)."),
+};
+
+const regions = [
+  { code: 'IN', name: 'India' },
+  { code: 'US', name: 'USA' },
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'ES', name: 'Spain' },
+  { code: 'FR', name: 'France' },
+  { code: 'CN', name: 'China' },
+] as const;
+
 
 const createSignUpSchema = (existingProfiles: Profile[]) => z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  phone: z.string().regex(/^[6-9]\d{9}$/, {
-      message: "Phone number must be a valid 10-digit Indian number.",
-  })
-  .refine(phone => !existingProfiles.some(p => p.phone === phone), {
-      message: "This phone number is already registered.",
-  }),
+  region: z.enum(["IN", "US", "GB", "ES", "FR", "CN"]),
+  phone: z.string(),
   password: passwordValidation,
   confirmPassword: z.string(),
 }).refine(data => data.password === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
+}).refine(data => !existingProfiles.some(p => p.phone === data.phone), {
+    message: "This phone number is already registered.",
+    path: ["phone"],
+}).superRefine((data, ctx) => {
+    const phoneSchema = phoneValidationSchemas[data.region];
+    const result = phoneSchema.safeParse(data.phone);
+    if (!result.success) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: result.error.errors[0].message,
+            path: ["phone"],
+        });
+    }
 });
 
 
@@ -102,7 +137,7 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
 
   const signUpForm = useForm<z.infer<typeof signUpSchema>>({
     resolver: zodResolver(signUpSchema),
-    defaultValues: { name: "", phone: "", password: "", confirmPassword: "" },
+    defaultValues: { name: "", region: "IN", phone: "", password: "", confirmPassword: "" },
   });
 
   const handleLogin = (values: z.infer<typeof loginSchema>) => {
@@ -135,6 +170,7 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
     const newProfile: Profile = {
         id: `profile-${Date.now()}`,
         name: values.name,
+        region: values.region,
         phone: values.phone,
         password: values.password, // Storing password for login check
     };
@@ -154,23 +190,23 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
     setAuthMode("login");
   }
 
-  const handleDeleteProfile = (profile: Profile) => {
+  const handleDeleteProfile = (profileToDelete: Profile) => {
     // Remove profile from state
-    const updatedProfiles = existingProfiles.filter(p => p.id !== profile.id);
+    const updatedProfiles = existingProfiles.filter(p => p.id !== profileToDelete.id);
     setProfiles(updatedProfiles);
     
     // Remove associated chat history from local storage
-    localStorage.removeItem(`counselai-chats-${profile.id}`);
+    localStorage.removeItem(`counselai-chats-${profileToDelete.id}`);
 
     // If the deleted profile was the one selected for login, reset the view
-    if (selectedProfile?.id === profile.id) {
+    if (selectedProfile?.id === profileToDelete.id) {
         setSelectedProfile(null);
         setAuthMode('initial');
     }
 
     toast({
         title: "Profile Deleted",
-        description: `The profile for ${profile.name} has been removed.`,
+        description: `The profile for ${profileToDelete.name} has been removed.`,
     });
   }
   
@@ -308,6 +344,25 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
                                     <FormControl>
                                         <Input placeholder="Full Name" {...field} />
                                     </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={signUpForm.control}
+                            name="region"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                        <SelectValue placeholder="Select your region" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {regions.map(r => <SelectItem key={r.code} value={r.code}>{r.name}</SelectItem>)}
+                                    </SelectContent>
+                                    </Select>
                                     <FormMessage />
                                 </FormItem>
                             )}
