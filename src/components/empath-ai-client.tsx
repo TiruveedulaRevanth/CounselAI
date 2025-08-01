@@ -638,7 +638,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
                 onSpeak={(text) => speakText(text)}
                />
             ))}
-            {!activeChat && (
+            {(!activeChat || activeChat.messages.length === 0) && (
                 <div className="flex-1 flex flex-col items-center justify-center text-center">
                     <BrainLogo className="w-24 h-24 text-primary mb-4"/>
                     <h2 className="text-2xl font-bold">Welcome back, {userName}</h2>
