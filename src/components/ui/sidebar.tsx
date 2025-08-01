@@ -218,7 +218,7 @@ const Sidebar = React.forwardRef<
           "transition-all duration-300 ease-in-out",
           "data-[state=collapsed]:w-[var(--sidebar-width-icon)] data-[state=expanded]:w-[var(--sidebar-width)]",
           "data-[side=right]:order-last",
-          "data-[collapsible=offcanvas][data-state=collapsed]:-ml-[var(--sidebar-width)]",
+          collapsible === 'offcanvas' && state === 'collapsed' ? "data-[collapsible=offcanvas][data-state=collapsed]:-ml-[var(--sidebar-width)]" : "",
           "data-[side=right]:data-[collapsible=offcanvas][data-state=collapsed]:-mr-[var(--sidebar-width)]",
           className
         )}
@@ -410,7 +410,7 @@ const SidebarContent = React.forwardRef<
       ref={ref}
       data-sidebar="content"
       className={cn(
-        "flex min-h-0 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
+        "flex min-h-0 flex-col gap-2 overflow-x-hidden overflow-y-auto group-data-[collapsible=icon]:overflow-hidden",
         className
       )}
       {...props}
