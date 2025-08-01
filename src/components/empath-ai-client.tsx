@@ -5,7 +5,7 @@ import { personalizeTherapyStyle } from "@/ai/flows/therapy-style-personalizatio
 import { summarizeChat } from "@/ai/flows/summarize-chat-flow";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Mic, Send, Settings, Trash2, MoreHorizontal, MessageSquarePlus, Square, Library, Heart, Sparkles } from "lucide-react";
+import { LogOut, Mic, Send, Settings, Trash2, MoreHorizontal, MessageSquarePlus, Square, Library, Sprout, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import ChatMessage from "./chat-message";
 import SettingsDialog from "./settings-dialog";
@@ -88,7 +88,7 @@ export const therapyStyles = [
   {
     name: "Cognitive Behavioral (CBT)",
     prompt:
-      "Act as a CBT-informed guide, operating at an 8.5/10 intensity. Your tone is supportive and collaborative. First, validate the user's emotional state. Then, gently help them identify specific unhelpful thinking patterns (like black-and-white thinking or catastrophizing). Use Socratic questioning to help them explore their thought patterns (e.g., 'What's the evidence for that thought? Is there another way to look at this?'). Guide them toward cognitive restructuring without sounding robotic or overly scripted. Use the user's name to create a collaborative feeling.",
+      "Act as a CBT-informed guide, operating at an 8.5/10 intensity. Your tone is supportive and collaborative. First, validate the user's emotional state. Then, gently help them identify specific unhelpful thinking patterns (like black-and-white thinking or catastrophizing). Use Socratic questioning to help them explore their thought patterns (eg., 'What's the evidence for that thought? Is there another way to look at this?'). Guide them toward cognitive restructuring without sounding robotic or overly scripted. Use the user's name to create a collaborative feeling.",
   },
    {
     name: "Solution-Focused",
@@ -361,18 +361,24 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
       };
       
       recognition.onerror = (event: any) => {
-        console.error("Speech recognition error", event.error);
-        if (event.error === 'network') {
+        if (event.error === 'not-allowed') {
+            toast({
+              variant: "destructive",
+              title: "Microphone Access Denied",
+              description: "Please enable microphone access in your browser settings to use this feature.",
+            });
+        } else if (event.error === 'network') {
             toast({
               variant: "destructive",
               title: "Speech Recognition Error",
               description: "Network error. Please check your connection and try again.",
             });
         } else if (event.error !== 'no-speech') {
+            console.error("Speech recognition error", event.error);
             toast({
               variant: "destructive",
               title: "Speech Recognition Error",
-              description: event.error,
+              description: "An unexpected error occurred. Please try again.",
             });
         }
         setIsListening(false);
@@ -635,7 +641,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
             <Tooltip>
                 <TooltipTrigger asChild>
                     <Button variant="destructive" className="w-full justify-start gap-2" onClick={() => setIsEmergencyOpen(true)}>
-                        <Heart size={16}/> 
+                        <Sprout size={16}/> 
                         <span className="group-data-[collapsible=icon]:hidden">Need Help?</span>
                     </Button>
                 </TooltipTrigger>
