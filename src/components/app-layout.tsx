@@ -11,7 +11,7 @@ interface AppLayoutProps {
 
 export default function AppLayout({ userName, onSignOut }: AppLayoutProps) {
     return (
-        <SidebarProvider>
+        <SidebarProvider collapsible="offcanvas">
             <EmpathAIClient userName={userName} onSignOut={onSignOut} />
         </SidebarProvider>
     );
