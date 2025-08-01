@@ -586,8 +586,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
         </SidebarHeader>
 
         <SidebarContent>
-            <ScrollArea className="flex-1 -mx-2">
-                <div className="px-2">
+            <ScrollArea className="flex-1 -mx-2 px-2">
                 <SidebarMenu>
                 {groupedChats.map(group => (
                     <SidebarGroup key={group.label}>
@@ -621,7 +620,6 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
                     </SidebarGroup>
                 ))}
                 </SidebarMenu>
-                </div>
             </ScrollArea>
         </SidebarContent>
 
@@ -650,21 +648,21 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
         <div className="flex flex-col h-screen">
           <header className="flex items-center justify-between p-4 border-b">
             <div className="flex items-center gap-2">
-                <SidebarTrigger tooltip="Toggle chat history" />
                 <BrainLogo className="w-7 h-7"/>
                 <h2 className="text-lg font-semibold">CounselAI</h2>
+                <SidebarTrigger tooltip="Toggle chat history" />
             </div>
              <div className="flex items-center gap-1">
                 <ThemeToggle />
                 <Tooltip>
-                  <TooltipTrigger asChild>
+                  <TooltipTrigger asChild={true}>
                     <Button variant="ghost" size="icon" onClick={() => setIsToolkitOpen(true)}><Sprout size={20}/></Button>
                   </TooltipTrigger>
                   <TooltipContent><p>Mindful Toolkit</p></TooltipContent>
                 </Tooltip>
                 <DropdownMenu>
                     <Tooltip>
-                        <TooltipTrigger asChild>
+                        <TooltipTrigger asChild={true}>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon"><Trash2 size={20}/></Button>
                             </DropdownMenuTrigger>
@@ -683,13 +681,13 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
                 </DropdownMenu>
 
                 <Tooltip>
-                  <TooltipTrigger asChild>
+                  <TooltipTrigger asChild={true}>
                     <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}><Settings size={20}/></Button>
                   </TooltipTrigger>
                   <TooltipContent><p>Settings</p></TooltipContent>
                 </Tooltip>
                 <Tooltip>
-                  <TooltipTrigger asChild>
+                  <TooltipTrigger asChild={true}>
                     <Button variant="ghost" size="icon" onClick={handleSignOut}><LogOut size={20}/></Button>
                   </TooltipTrigger>
                   <TooltipContent><p>Sign Out</p></TooltipContent>
