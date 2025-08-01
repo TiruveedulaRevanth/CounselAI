@@ -20,6 +20,8 @@ import { BrainLogo } from "./brain-logo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { User, UserPlus } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Separator } from "./ui/separator";
 
 export type Profile = {
   id: string;
@@ -120,6 +122,14 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
     loginForm.setValue("email", profile.email);
     setAuthMode("login");
   }
+  
+  const FormSeparator = () => (
+    <div className="flex items-center my-6">
+        <div className="flex-grow border-t border-border"></div>
+        <span className="flex-shrink mx-4 text-xs font-semibold text-muted-foreground">OR</span>
+        <div className="flex-grow border-t border-border"></div>
+    </div>
+  );
 
   const renderInitial = () => (
     <Card className="w-full max-w-md">
@@ -151,27 +161,25 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
   );
 
   const renderLogin = () => (
-     <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-            <Avatar className="h-16 w-16 mx-auto">
-                <AvatarFallback className="bg-destructive text-destructive-foreground font-bold text-3xl">
-                    {selectedProfile?.name.charAt(0).toUpperCase() ?? <User size={20} />}
-                </AvatarFallback>
-            </Avatar>
-            <CardTitle className="text-2xl pt-2">Welcome back, {selectedProfile?.name}</CardTitle>
-            <CardDescription>Enter your password to sign in.</CardDescription>
-        </CardHeader>
-        <CardContent>
+    <div>
+        <div className="w-full max-w-sm border border-border rounded-lg p-8">
+            <div className="flex flex-col items-center text-center">
+                 <Avatar className="h-24 w-24 mb-4">
+                    <AvatarFallback className="bg-destructive text-destructive-foreground font-bold text-4xl">
+                        {selectedProfile?.name.charAt(0).toUpperCase() ?? <User size={20} />}
+                    </AvatarFallback>
+                </Avatar>
+            </div>
+            
             <Form {...loginForm}>
-                <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
+                <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-3 mt-6">
                      <FormField
                         control={loginForm.control}
                         name="email"
                         render={({ field }) => (
-                            <FormItem className="hidden">
-                                <FormLabel>Email</FormLabel>
+                            <FormItem>
                                 <FormControl>
-                                    <Input placeholder="user@gmail.com" {...field} readOnly />
+                                    <Input placeholder="Email" {...field} readOnly className="bg-muted text-center text-muted-foreground" />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -182,31 +190,38 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
                         name="password"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Password</FormLabel>
                                 <FormControl>
-                                    <Input type="password" placeholder="••••••••" {...field} autoFocus/>
+                                    <Input type="password" placeholder="Password" {...field} autoFocus className="text-center"/>
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
-                    <Button type="submit" className="w-full">Log In</Button>
+                    <Button type="submit" className="w-full !mt-4">Log In</Button>
                 </form>
             </Form>
-            <Button variant="link" className="mt-4 w-full" onClick={() => { setAuthMode("initial"); setSelectedProfile(null); }}>
-                Back to profiles
-            </Button>
-        </CardContent>
-    </Card>
+        </div>
+        <div className="w-full max-w-sm border border-border rounded-lg p-6 mt-4 text-center">
+            <p className="text-sm">
+                Not {selectedProfile?.name}? 
+                <Button variant="link" className="p-1" onClick={() => { setAuthMode("initial"); setSelectedProfile(null); }}>
+                    Use another account
+                </Button>
+            </p>
+        </div>
+    </div>
   );
 
   const renderSignUp = () => (
-    <Card className="w-full max-w-md">
-        <CardHeader>
-            <CardTitle className="text-2xl">Create a New Profile</CardTitle>
-            <CardDescription>Sign up to start your journey with CounselAI.</CardDescription>
-        </CardHeader>
-        <CardContent>
+    <div>
+        <div className="w-full max-w-sm border border-border rounded-lg p-8">
+            <div className="text-center mb-6">
+                <BrainLogo className="w-12 h-12 mx-auto text-primary mb-4"/>
+                <h2 className="font-semibold text-muted-foreground">Sign up to start your journey with CounselAI.</h2>
+            </div>
+            
+            <FormSeparator />
+
             <Form {...signUpForm}>
                 <form onSubmit={signUpForm.handleSubmit(handleSignUp)} className="space-y-3">
                      <FormField
@@ -214,9 +229,8 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
                         name="name"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Name</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="Your Name" {...field} />
+                                    <Input placeholder="Full Name" {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -227,9 +241,8 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
                         name="email"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Email</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="user@gmail.com" {...field} />
+                                    <Input placeholder="Email address (@gmail.com)" {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -240,9 +253,8 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
                         name="phone"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Phone</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="10-digit number" {...field} />
+                                    <Input placeholder="Phone number" {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -253,9 +265,8 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
                         name="password"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Password</FormLabel>
                                 <FormControl>
-                                    <Input type="password" placeholder="••••••••" {...field} />
+                                    <Input type="password" placeholder="Password" {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -266,24 +277,26 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
                         name="confirmPassword"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Confirm Password</FormLabel>
                                 <FormControl>
-                                    <Input type="password" placeholder="••••••••" {...field} />
+                                    <Input type="password" placeholder="Confirm Password" {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
-                    <Button type="submit" className="w-full !mt-6">Create Account</Button>
+                    <Button type="submit" className="w-full !mt-6">Sign Up</Button>
                 </form>
             </Form>
-            { existingProfiles.length > 0 && 
-                <Button variant="link" className="mt-4 w-full" onClick={() => setAuthMode("initial")}>
-                    Back to profiles
+        </div>
+         <div className="w-full max-w-sm border border-border rounded-lg p-6 mt-4 text-center">
+            <p className="text-sm">
+                Have an account? 
+                <Button variant="link" className="p-1" onClick={() => { setAuthMode("initial"); setSelectedProfile(null); }}>
+                   Log in
                 </Button>
-            }
-        </CardContent>
-    </Card>
+            </p>
+        </div>
+    </div>
   )
 
   const getAuthContent = () => {
@@ -299,9 +312,8 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
     }
   }
 
-
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4 font-sans">
       {getAuthContent()}
     </div>
   );
