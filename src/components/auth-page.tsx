@@ -45,7 +45,7 @@ export type Profile = {
   name: string;
   region: string;
   phone: string;
-  password?: string; // Optional for now to support old profiles without a password
+  password?: string;
 }
 
 interface AuthPageProps {
@@ -145,9 +145,11 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
         setSelectedProfile(profile);
         setAuthMode("login");
     } else {
-        initialForm.setError("phone", {
-            type: "manual",
-            message: "No account found with this number. Please sign up.",
+        setAuthMode("signup");
+        signUpForm.setValue("phone", values.phone);
+        toast({
+            title: "Account Not Found",
+            description: "No account found with this number. Please sign up.",
         });
     }
   };
@@ -395,7 +397,7 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
     }
     switch (authMode) {
         case "initial":
-            return existingProfiles.length > 0 ? renderInitial() : renderSignUp();
+            return renderInitial();
         case "login":
             return renderLogin();
         case "signup":
