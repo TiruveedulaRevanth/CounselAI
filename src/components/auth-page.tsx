@@ -164,14 +164,6 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
     });
   };
   
-  const FormSeparator = () => (
-    <div className="flex items-center my-6">
-        <div className="flex-grow border-t border-border"></div>
-        <span className="flex-shrink mx-4 text-xs font-semibold text-muted-foreground uppercase">Or</span>
-        <div className="flex-grow border-t border-border"></div>
-    </div>
-  );
-
   const renderInitial = () => (
     <div className="w-full max-w-sm">
         <div className="p-1 rounded-xl bg-gradient-to-br from-[#8134AF] via-[#DD2A7B] to-[#FEDA77]">
@@ -221,8 +213,6 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
                     <BrainLogo className="w-12 h-12 mx-auto text-primary mb-4"/>
                     <h2 className="font-semibold text-muted-foreground">Sign up to start your journey with CounselAI.</h2>
                 </div>
-                
-                <FormSeparator />
 
                 <Form {...signUpForm}>
                     <form onSubmit={signUpForm.handleSubmit(handleSignUp)} className="space-y-3">
@@ -312,8 +302,7 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
         <div className="flex flex-col items-center w-full max-w-sm">
          {getAuthContent()}
          {authMode === 'initial' && existingProfiles.length > 0 && (
-            <div className="w-full mt-4">
-                <h3 className="text-center text-muted-foreground font-semibold mb-2">Or log in as...</h3>
+            <div className="w-full mt-8">
                 <div className="bg-card rounded-lg border p-4 space-y-3">
                 {existingProfiles.map(p => (
                     <div key={p.id} className="flex items-center justify-between">
