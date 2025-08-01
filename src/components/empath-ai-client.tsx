@@ -5,7 +5,7 @@ import { personalizeTherapyStyle } from "@/ai/flows/therapy-style-personalizatio
 import { summarizeChat } from "@/ai/flows/summarize-chat-flow";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Mic, Send, Settings, Trash2, MoreHorizontal, MessageSquarePlus, Square, Library, Heart, Sprout } from "lucide-react";
+import { LogOut, Mic, Send, Settings, Trash2, MoreHorizontal, MessageSquarePlus, Square, Library, Heart, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import ChatMessage from "./chat-message";
 import SettingsDialog from "./settings-dialog";
@@ -664,7 +664,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
                 <ThemeToggle />
                 <Tooltip>
                   <TooltipTrigger asChild={true}>
-                    <Button variant="ghost" size="icon" onClick={() => setIsToolkitOpen(true)}><Sprout size={20}/></Button>
+                    <Button variant="ghost" size="icon" onClick={() => setIsToolkitOpen(true)}><Sparkles size={20}/></Button>
                   </TooltipTrigger>
                   <TooltipContent><p>Mindful Toolkit</p></TooltipContent>
                 </Tooltip>
@@ -702,26 +702,28 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
                 </Tooltip>
              </div>
           </header>
-          <ScrollArea className="flex-1" ref={scrollAreaRef}>
-            <div className="p-6 space-y-6">
-                {(!activeChat || activeChat.messages.length === 0) && (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center h-[calc(100vh-200px)]">
-                        <BrainLogo className="w-24 h-24 text-primary mb-4"/>
-                        <h2 className="text-2xl font-bold">Welcome back, {userName}</h2>
-                        <p className="text-muted-foreground">Start a new conversation by typing below or using the microphone.</p>
-                    </div>
-                )}
-                {activeChat?.messages.map(message => (
-                  <ChatMessage 
-                    key={message.id} 
-                    message={message} 
-                    userName={userName}
-                    onSpeak={(text) => speakText(text)}
-                   />
-                ))}
-                {isLoading && <ChatMessage.Loading />}
-            </div>
-          </ScrollArea>
+          <div className="flex-1 flex flex-col min-h-0">
+             <ScrollArea className="flex-1" ref={scrollAreaRef}>
+                <div className="p-6 space-y-6">
+                    {(!activeChat || activeChat.messages.length === 0) && (
+                        <div className="flex-1 flex flex-col items-center justify-center text-center h-[calc(100vh-200px)]">
+                            <BrainLogo className="w-24 h-24 text-primary mb-4"/>
+                            <h2 className="text-2xl font-bold">Welcome back, {userName}</h2>
+                            <p className="text-muted-foreground">Start a new conversation by typing below or using the microphone.</p>
+                        </div>
+                    )}
+                    {activeChat?.messages.map(message => (
+                      <ChatMessage 
+                        key={message.id} 
+                        message={message} 
+                        userName={userName}
+                        onSpeak={(text) => speakText(text)}
+                       />
+                    ))}
+                    {isLoading && <ChatMessage.Loading />}
+                </div>
+              </ScrollArea>
+          </div>
           <footer className="p-4 border-t shrink-0">
             <div className="relative max-w-2xl mx-auto">
                 <Textarea
