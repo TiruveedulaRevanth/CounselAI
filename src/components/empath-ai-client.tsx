@@ -48,7 +48,7 @@ import { isToday, isYesterday, isWithinInterval, subDays, startOfToday, startOfD
 import EmergencyResourcesDialog from "./emergency-resources-dialog";
 import ResourcesLibrary from "./resources-library";
 import MindfulToolkitDialog from "./mindful-toolkit-dialog";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "./ui/tooltip";
 
 
 declare global {
@@ -552,6 +552,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
 
   return (
     <>
+    <TooltipProvider>
       <BulkDeleteDialog />
        <SettingsDialog
           availableVoices={availableVoices}
@@ -736,7 +737,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
                         </Tooltip>
                     ) : (
                         <Tooltip>
-                            <TooltipTrigger as Child>
+                            <TooltipTrigger asChild={true}>
                                 <Button 
                                     variant="ghost"
                                     size="icon" 
@@ -750,7 +751,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
                         </Tooltip>
                     )}
                     <Tooltip>
-                        <TooltipTrigger as Child>
+                        <TooltipTrigger asChild={true}>
                             <Button variant="ghost" size="icon" onClick={() => handleSend( userInput)} disabled={isLoading || !userInput.trim()}>
                                 <Send className="h-5 w-5"/>
                             </Button>
@@ -765,10 +766,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
           </footer>
         </div>
       </SidebarInset>
+    </TooltipProvider>
     </>
   );
 }
-
-    
-
-    
