@@ -6,6 +6,7 @@ import AuthPage, { Profile } from "@/components/auth-page";
 import AppLayout from "@/components/app-layout";
 
 export default function Home() {
+  const [isLoading, setIsLoading] = useState(true);
   const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
   const [profiles, setProfiles] = useState<Profile[]>([]);
 
@@ -26,12 +27,17 @@ export default function Home() {
       }
     } catch (error) {
       console.error("Failed to load profile data from local storage:", error);
+      // Ensure we don't stay in a loading state if local storage fails
+      setActiveProfile(null); 
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
   const handleSignInSuccess = (profile: Profile) => {
     localStorage.setItem("counselai-active-profile-id", profile.id);
     
+    // Avoid duplicates when signing in with an existing profile
     const existingProfiles = profiles.filter(p => p.id !== profile.id);
     const updatedProfiles = [...existingProfiles, profile];
     
@@ -45,13 +51,18 @@ export default function Home() {
     setActiveProfile(null);
   }
 
-  // Render nothing on the server to prevent hydration mismatch
-  if (typeof window === 'undefined') {
-    return null;
+  // Render a loading state on both server and client initially
+  if (isLoading) {
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-background">
+            {/* You can replace this with a proper spinner component if you have one */}
+            <p className="text-muted-foreground">Loading...</p>
+        </div>
+    );
   }
 
   if (!activeProfile) {
-    return <AuthPage onSignInSuccess={handleSignInSuccess} existingProfiles={profiles} />;
+    return <AuthPage onSignInSuccess={handleSignInSuccess} existingProfiles={profiles} setProfiles={setProfiles} />;
   }
 
   return <AppLayout userName={activeProfile.name} onSignOut={handleSignOut} />;

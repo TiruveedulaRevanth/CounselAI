@@ -30,6 +30,7 @@ export type Profile = {
 interface AuthPageProps {
   onSignInSuccess: (profile: Profile) => void;
   existingProfiles: Profile[];
+  setProfiles: (profiles: Profile[]) => void;
 }
 
 const loginSchema = z.object({
@@ -61,7 +62,7 @@ const signUpSchema = z.object({
 });
 
 
-export default function AuthPage({ onSignInSuccess, existingProfiles }: AuthPageProps) {
+export default function AuthPage({ onSignInSuccess, existingProfiles, setProfiles }: AuthPageProps) {
   const { toast } = useToast();
   const [authMode, setAuthMode] = useState<"initial" | "login" | "signup">("initial");
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
@@ -69,6 +70,8 @@ export default function AuthPage({ onSignInSuccess, existingProfiles }: AuthPage
   useEffect(() => {
     if (existingProfiles.length === 0) {
         setAuthMode("signup");
+    } else {
+        setAuthMode("initial");
     }
   }, [existingProfiles]);
 
@@ -106,6 +109,9 @@ export default function AuthPage({ onSignInSuccess, existingProfiles }: AuthPage
         title: "Sign Up Successful",
         description: "You can now start using CounselAI.",
     });
+    // also update the profiles in the parent component
+    const updatedProfiles = [...existingProfiles, newProfile];
+    setProfiles(updatedProfiles);
     onSignInSuccess(newProfile);
   };
   
@@ -280,13 +286,6 @@ export default function AuthPage({ onSignInSuccess, existingProfiles }: AuthPage
     </Card>
   )
 
-  const renderLoading = () => (
-    <div className="flex items-center justify-center min-h-screen">
-        {/* You can replace this with a proper spinner component */}
-        <p>Loading profiles...</p>
-    </div>
-  )
-
   const getAuthContent = () => {
     switch (authMode) {
         case "initial":
@@ -296,7 +295,7 @@ export default function AuthPage({ onSignInSuccess, existingProfiles }: AuthPage
         case "signup":
             return renderSignUp();
         default:
-            return renderLoading();
+            return null;
     }
   }
 
