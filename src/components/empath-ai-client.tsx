@@ -5,7 +5,7 @@ import { personalizeTherapyStyle } from "@/ai/flows/therapy-style-personalizatio
 import { summarizeChat } from "@/ai/flows/summarize-chat-flow";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Mic, Plus, Send, Settings, Square, Trash2 } from "lucide-react";
+import { LogOut, Mic, Plus, Send, Settings, Square, Trash2, MoreHorizontal, MessageSquarePlus } from "lucide-react";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import ChatMessage from "./chat-message";
 import SettingsDialog from "./settings-dialog";
@@ -21,7 +21,17 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarMenuAction,
+  SidebarFooter,
+  SidebarSeparator,
+  SidebarGroup,
+  SidebarGroupLabel,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +45,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { BrainLogo } from "./brain-logo";
 import { ThemeToggle } from "./theme-toggle";
+import { isToday, isYesterday, isWithinInterval, subDays, startOfDay } from "date-fns";
 
 
 declare global {
@@ -54,6 +65,7 @@ export type Chat = {
   id: string;
   name: string;
   messages: Message[];
+  createdAt: number;
 };
 
 export const therapyStyles = [
@@ -109,6 +121,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
 
   const [isListening, setIsListening] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -135,8 +148,14 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
     try {
       const savedChats = localStorage.getItem("counselai-chats");
       if (savedChats) {
-        setChats(JSON.parse(savedChats));
-        setActiveChatId(JSON.parse(savedChats)[0]?.id || null);
+        const parsedChats = JSON.parse(savedChats) as Chat[];
+        // Ensure all chats have a createdAt timestamp
+        const chatsWithTimestamps = parsedChats.map(c => ({...c, createdAt: c.createdAt || Date.now() }));
+        setChats(chatsWithTimestamps);
+
+        if (chatsWithTimestamps.length > 0) {
+           setActiveChatId(chatsWithTimestamps[0].id);
+        }
       }
     } catch (error) {
       console.error("Failed to load chats from local storage:", error);
@@ -157,6 +176,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
       id: `chat-${Date.now()}`,
       name: "New Chat",
       messages: [],
+      createdAt: Date.now(),
     };
     setChats(prev => [newChat, ...prev]);
     setActiveChatId(newChat.id);
@@ -176,7 +196,46 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
     });
   };
 
+  const handleBulkDelete = () => {
+    setChats([]);
+    setActiveChatId(null);
+    setIsBulkDeleteOpen(false);
+  }
+
   const activeChat = useMemo(() => chats.find(chat => chat.id === activeChatId), [chats, activeChatId]);
+
+  const groupedChats = useMemo(() => {
+    const now = new Date();
+    const today: Chat[] = [];
+    const yesterday: Chat[] = [];
+    const last7Days: Chat[] = [];
+    const last30Days: Chat[] = [];
+    const older: Chat[] = [];
+
+    chats.forEach(chat => {
+      const chatDate = new Date(chat.createdAt);
+      if (isToday(chatDate)) {
+        today.push(chat);
+      } else if (isYesterday(chatDate)) {
+        yesterday.push(chat);
+      } else if (isWithinInterval(chatDate, { start: subDays(now, 7), end: now })) {
+        last7Days.push(chat);
+      } else if (isWithinInterval(chatDate, { start: subDays(now, 30), end: now })) {
+        last30Days.push(chat);
+      } else {
+        older.push(chat);
+      }
+    });
+
+    return [
+        { label: "Today", chats: today },
+        { label: "Yesterday", chats: yesterday },
+        { label: "Previous 7 Days", chats: last7Days },
+        { label: "Previous 30 Days", chats: last30Days },
+        { label: "Older", chats: older }
+    ].filter(group => group.chats.length > 0);
+
+  }, [chats]);
 
   const speakText = useCallback((text: string) => {
     if ('speechSynthesis' in window && selectedVoice) {
@@ -294,6 +353,7 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
         id: `chat-${Date.now()}`,
         name: "New Chat",
         messages: [],
+        createdAt: Date.now(),
       };
       setChats(prev => [newChat, ...prev]);
       currentChatId = newChat.id;
@@ -408,8 +468,29 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
     }
   }
 
+  const BulkDeleteDialog = () => (
+    <AlertDialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete all
+                chat history.
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete}>
+                Continue
+            </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    );
+
   return (
     <>
+      <BulkDeleteDialog />
        <SettingsDialog
           availableVoices={availableVoices}
           selectedLanguage={selectedLanguage}
@@ -423,63 +504,89 @@ export default function EmpathAIClient({ userName, onSignOut }: EmpathAIClientPr
         />
       <Sidebar>
         <SidebarHeader>
-          <div className="flex items-center gap-2">
+           <div className="flex items-center gap-2">
             <SidebarTrigger />
             <h1 className="text-xl font-bold">CounselAI</h1>
           </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}>
-                <Settings />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={handleSignOut}>
-                <LogOut/>
-            </Button>
-          </div>
+            <SidebarMenuButton
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={createNewChat}
+                tooltip="New Chat"
+            >
+                <MessageSquarePlus />
+            </SidebarMenuButton>
         </SidebarHeader>
+
         <SidebarContent>
-          <Button className="w-full" onClick={createNewChat}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Chat
-          </Button>
-          <ScrollArea className="flex-1 -mx-2 mt-4">
-            <SidebarMenu className="px-2">
-              {chats.map(chat => (
-                <SidebarMenuItem key={chat.id}>
-                  <SidebarMenuButton 
-                    onClick={() => setActiveChatId(chat.id)}
-                    isActive={chat.id === activeChatId}
-                    className="truncate"
-                  >
-                    {chat.name}
-                  </SidebarMenuButton>
-                   <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                          <SidebarMenuAction>
-                              <Trash2/>
-                          </SidebarMenuAction>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                          <AlertDialogHeader>
-                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete this
-                              chat history.
-                          </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDeleteChat(chat.id)}>
-                              Continue
-                          </AlertDialogAction>
-                          </AlertDialogFooter>
-                      </AlertDialogContent>
-                  </AlertDialog>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </ScrollArea>
+           <SidebarGroup>
+                <SidebarGroupLabel>Chats</SidebarGroupLabel>
+                <ScrollArea className="flex-1 -mx-2">
+                 <div className="px-2">
+                    <SidebarMenu>
+                    {groupedChats.map(group => (
+                        <SidebarGroup key={group.label}>
+                            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+                            <SidebarMenu>
+                                {group.chats.map(chat => (
+                                    <SidebarMenuItem key={chat.id} className="mx-2">
+                                        <SidebarMenuButton 
+                                            onClick={() => setActiveChatId(chat.id)}
+                                            isActive={chat.id === activeChatId}
+                                            className="truncate"
+                                        >
+                                            {chat.name}
+                                        </SidebarMenuButton>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <SidebarMenuAction>
+                                                    <MoreHorizontal/>
+                                                </SidebarMenuAction>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent>
+                                                <DropdownMenuItem onClick={() => handleDeleteChat(chat.id)}>
+                                                    Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </SidebarMenuItem>
+                                ))}
+                            </SidebarMenu>
+                        </SidebarGroup>
+                    ))}
+                    </SidebarMenu>
+                  </div>
+                </ScrollArea>
+           </SidebarGroup>
         </SidebarContent>
+
+        <SidebarFooter>
+            <SidebarSeparator/>
+            <SidebarMenu>
+                <SidebarMenuItem>
+                     <SidebarMenuButton onClick={() => setIsBulkDeleteOpen(true)} tooltip="Delete All Chats" >
+                        <Trash2/>
+                        <span>Delete all chats</span>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                    <SidebarMenuButton onClick={() => setIsSettingsOpen(true)} tooltip="Settings">
+                        <Settings/>
+                        <span>Settings</span>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                   <ThemeToggle/>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                     <SidebarMenuButton onClick={handleSignOut} tooltip="Sign Out">
+                        <LogOut/>
+                        <span>Sign out</span>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            </SidebarMenu>
+        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <div className="flex flex-col h-screen">
