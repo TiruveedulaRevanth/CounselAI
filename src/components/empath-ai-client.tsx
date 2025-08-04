@@ -5,7 +5,7 @@ import { personalizeTherapyStyle } from "@/ai/flows/therapy-style-personalizatio
 import { summarizeChat } from "@/ai/flows/summarize-chat-flow";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Mic, Send, Settings, Trash2, MoreHorizontal, MessageSquarePlus, Square, Library, Sparkles, Siren, Edit, Archive, ArchiveX } from "lucide-react";
+import { LogOut, Mic, Send, Settings, Trash2, MoreHorizontal, MessageSquarePlus, Square, Library, Sparkles, Siren, Edit, Archive, ArchiveX, FilePenLine } from "lucide-react";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import ChatMessage from "./chat-message";
 import SettingsDialog from "./settings-dialog";
@@ -53,7 +53,9 @@ import { Avatar, AvatarFallback } from "./ui/avatar";
 import { User } from "lucide-react";
 import type { Profile } from "./auth-page";
 import EditProfileDialog from "./edit-profile-dialog";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 
 
 declare global {
@@ -139,6 +141,10 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
   const [isToolkitOpen, setIsToolkitOpen] = useState(false);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [isDeleteProfileOpen, setIsDeleteProfileOpen] = useState(false);
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
+  const [chatToRename, setChatToRename] = useState<Chat | null>(null);
+  const [newChatName, setNewChatName] = useState("");
+
 
   const [deleteScope, setDeleteScope] = useState<DeletionScope>("all");
 
@@ -259,6 +265,31 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         setActiveChatId(sortedRemaining[0]?.id || null);
     }
     setChats(updatedChats);
+  };
+
+  const openRenameDialog = (chat: Chat) => {
+    setChatToRename(chat);
+    setNewChatName(chat.name);
+    setIsRenameDialogOpen(true);
+  };
+
+  const handleRenameChat = () => {
+    if (!chatToRename || !newChatName.trim()) return;
+
+    const updatedChats = chats.map(c => 
+        c.id === chatToRename.id ? { ...c, name: newChatName.trim() } : c
+    );
+    setChats(updatedChats);
+
+    toast({
+        title: "Chat Renamed",
+        description: `The chat has been renamed to "${newChatName.trim()}".`,
+    });
+    
+    // Close and reset dialog state
+    setIsRenameDialogOpen(false);
+    setChatToRename(null);
+    setNewChatName("");
   };
 
   const handleScopedDelete = () => {
@@ -480,7 +511,6 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         currentChat = newChat;
         currentChatId = newChat.id;
         setActiveChatId(newChat.id);
-        setChats(currentChats); // This will also trigger the save to localStorage
     }
 
     const isFirstMessage = currentChat.messages.length === 0;
@@ -491,17 +521,14 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
       content: text,
     };
 
-    // This is the history that will be sent to the AI
-    const historyForAI = [...currentChat.messages, newUserMessage].map(({ role, content }) => ({ role, content }));
-    
-    // Create a snapshot of the current chats to revert to on error
-    const originalChats = [...chats];
+    const updatedMessages = [...currentChat.messages, newUserMessage];
+    const updatedChat = { ...currentChat, messages: updatedMessages };
 
+    const historyForAI = updatedMessages.map(({ role, content }) => ({ role, content }));
+    
     // Optimistically update the local state for a responsive UI
     const updatedChatsWithUserMessage = currentChats.map(chat =>
-        chat.id === currentChatId
-            ? { ...chat, messages: [...chat.messages, newUserMessage] }
-            : chat
+        chat.id === currentChatId ? updatedChat : chat
     );
     setChats(updatedChatsWithUserMessage);
 
@@ -546,7 +573,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
             };
             finalChats = finalChats.map(chat =>
                 chat.id === currentChatId
-                    ? { ...chat, messages: [...(finalChats.find(c => c.id === currentChatId)?.messages || []), newAssistantMessage] }
+                    ? { ...chat, messages: [...chat.messages, newAssistantMessage] }
                     : chat
             );
         } else {
@@ -563,17 +590,11 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
             description: "Sorry, I encountered an error. Please try again.",
         });
         // Revert the optimistic update on error
-        const userMessageId = newUserMessage.id;
-        const revertedChats = originalChats.map(chat => {
-            if (chat.id === currentChatId) {
-                return {
-                    ...chat,
-                    messages: chat.messages.filter(msg => msg.id !== userMessageId)
-                };
-            }
-            return chat;
-        });
-        setChats(revertedChats);
+         setChats(currentChats.map(chat =>
+            chat.id === currentChatId
+                ? { ...chat, messages: currentChat.messages }
+                : chat
+         ));
     } finally {
         setIsLoading(false);
     }
@@ -613,6 +634,38 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     );
   }
 
+  const RenameChatDialog = () => (
+    <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Rename Chat</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="chat-name" className="text-right">
+                        Name
+                    </Label>
+                    <Input
+                        id="chat-name"
+                        value={newChatName}
+                        onChange={(e) => setNewChatName(e.target.value)}
+                        className="col-span-3"
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                handleRenameChat();
+                            }
+                        }}
+                    />
+                </div>
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setIsRenameDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleRenameChat}>Save</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+  )
+
   const DeleteProfileDialog = () => (
     <AlertDialog open={isDeleteProfileOpen} onOpenChange={setIsDeleteProfileOpen}>
         <AlertDialogContent>
@@ -651,6 +704,10 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
                 </SidebarMenuAction>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => openRenameDialog(chat)}>
+                    <FilePenLine className="mr-2 h-4 w-4" />
+                    Rename
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleDeleteChat(chat.id)} className="text-destructive">
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete
@@ -665,6 +722,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     <TooltipProvider>
       <BulkDeleteDialog />
       <DeleteProfileDialog />
+      <RenameChatDialog />
        <SettingsDialog
           availableVoices={availableVoices}
           selectedLanguage={selectedLanguage}
@@ -896,5 +954,3 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     </>
   );
 }
-
-    
