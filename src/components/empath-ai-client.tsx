@@ -5,7 +5,7 @@ import { personalizeTherapyStyle } from "@/ai/flows/therapy-style-personalizatio
 import { summarizeChat } from "@/ai/flows/summarize-chat-flow";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Mic, Send, Settings, Trash2, MoreHorizontal, MessageSquarePlus, Square, Library, Sparkles, Siren, Edit, Archive, ArchiveX } from "lucide-react";
+import { LogOut, Mic, Send, Settings, Trash2, MoreHorizontal, MessageSquarePlus, Square, Library, Sparkles, Siren, Edit } from "lucide-react";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import ChatMessage from "./chat-message";
 import SettingsDialog from "./settings-dialog";
@@ -54,8 +54,7 @@ import { User } from "lucide-react";
 import type { Profile } from "./auth-page";
 import EditProfileDialog from "./edit-profile-dialog";
 import { db } from "@/lib/firebase";
-import { doc, setDoc, onSnapshot, getDoc } from "firebase/firestore";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { doc, setDoc, onSnapshot } from "firebase/firestore";
 
 
 declare global {
@@ -76,7 +75,6 @@ export type Chat = {
   name: string;
   messages: Message[];
   createdAt: number;
-  isArchived?: boolean;
 };
 
 type DeletionScope = "today" | "week" | "month" | "all";
@@ -189,8 +187,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
             setChats(chatsData);
 
             if (chatsData.length > 0 && !activeChatId) {
-                const unarchivedChats = chatsData.filter((c: Chat) => !c.isArchived);
-                const sortedChats = [...unarchivedChats].sort((a, b) => b.createdAt - a.createdAt);
+                const sortedChats = [...chatsData].sort((a, b) => b.createdAt - a.createdAt);
                 setActiveChatId(sortedChats[0]?.id || null);
             } else if (chatsData.length === 0) {
                 setActiveChatId(null);
@@ -213,7 +210,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
 
     // Cleanup subscription on component unmount
     return () => unsubscribe();
-  }, [chatDocRef, toast]);
+  }, [chatDocRef, toast, activeChatId]);
 
 
   const updateChatsInFirestore = async (newChats: Chat[]) => {
@@ -275,7 +272,6 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
       name: "New Chat",
       messages: [],
       createdAt: Date.now(),
-      isArchived: false,
     };
     const updatedChats = [newChat, ...chats];
     setChats(updatedChats);
@@ -287,31 +283,12 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     const updatedChats = chats.filter(c => c.id !== chatId);
     
     if (activeChatId === chatId) {
-        const sortedRemaining = updatedChats.filter(c => !c.isArchived).sort((a, b) => b.createdAt - a.createdAt);
+        const sortedRemaining = updatedChats.sort((a, b) => b.createdAt - a.createdAt);
         setActiveChatId(sortedRemaining[0]?.id || null);
     }
     setChats(updatedChats);
     await updateChatsInFirestore(updatedChats);
   };
-  
-  const handleToggleArchiveChat = async (chatId: string) => {
-    const chatToToggle = chats.find(c => c.id === chatId);
-    if (!chatToToggle) return;
-
-    const updatedChats = chats.map(c => 
-        c.id === chatId ? { ...c, isArchived: !c.isArchived } : c
-    );
-
-    // If we just archived the active chat, select a new active chat
-    if (chatId === activeChatId && !chatToToggle.isArchived) {
-        const sortedRemaining = updatedChats.filter(c => !c.isArchived).sort((a, b) => b.createdAt - a.createdAt);
-        setActiveChatId(sortedRemaining[0]?.id || null);
-    }
-    
-    setChats(updatedChats);
-    await updateChatsInFirestore(updatedChats);
-  };
-
 
   const handleScopedDelete = async () => {
     const now = Date.now();
@@ -322,11 +299,11 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
             chatsToKeep = chats.filter(chat => !isToday(new Date(chat.createdAt)));
             break;
         case 'week':
-            const last7Days = sub(now, { days: 7 });
+            const last7Days = subDays(now, 7);
             chatsToKeep = chats.filter(chat => new Date(chat.createdAt) < last7Days);
             break;
         case 'month':
-             const last30Days = sub(now, { days: 30 });
+             const last30Days = subDays(now, 30);
              chatsToKeep = chats.filter(chat => new Date(chat.createdAt) < last30Days);
             break;
         case 'all':
@@ -360,21 +337,6 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
 
   const activeChat = useMemo(() => chats.find(chat => chat.id === activeChatId), [chats, activeChatId]);
 
-  const { unarchivedChats, archivedChats } = useMemo(() => {
-    const sortedChats = chats.sort((a, b) => b.createdAt - a.createdAt);
-    const unarchived: Chat[] = [];
-    const archived: Chat[] = [];
-    sortedChats.forEach(chat => {
-        if (chat.isArchived) {
-            archived.push(chat);
-        } else {
-            unarchived.push(chat);
-        }
-    });
-    return { unarchivedChats, archivedChats };
-  }, [chats]);
-
-
   const groupedChats = useMemo(() => {
     const now = new Date();
     const today: Chat[] = [];
@@ -383,7 +345,9 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     const last30Days: Chat[] = [];
     const older: Chat[] = [];
 
-    unarchivedChats.forEach(chat => {
+    const sortedChats = chats.sort((a, b) => b.createdAt - a.createdAt);
+
+    sortedChats.forEach(chat => {
       const chatDate = new Date(chat.createdAt);
       if (isToday(chatDate)) {
         today.push(chat);
@@ -406,7 +370,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         { label: "Older", chats: older }
     ].filter(group => group.chats.length > 0);
 
-  }, [unarchivedChats]);
+  }, [chats]);
 
   const speakText = useCallback((text: string) => {
     if ('speechSynthesis' in window && selectedVoice) {
@@ -533,8 +497,8 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     if (!text.trim() || isLoading) return;
 
     let currentChatId = activeChatId;
-    let currentChats = chats;
-    let currentChat = activeChat;
+    let currentChats = [...chats];
+    let currentChat = currentChats.find(c => c.id === currentChatId);
 
     // If no active chat, create one first
     if (!currentChatId || !currentChat) {
@@ -543,14 +507,12 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         name: "New Chat",
         messages: [],
         createdAt: Date.now(),
-        isArchived: false,
       };
-      currentChats = [newChat, ...chats];
+      currentChats = [newChat, ...currentChats];
       currentChat = newChat;
       currentChatId = newChat.id;
       setActiveChatId(newChat.id);
       setChats(currentChats);
-      // No need to await here, state is set
     }
 
     const isFirstMessage = currentChat.messages.length === 0;
@@ -571,6 +533,8 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
             : chat
     );
     setChats(updatedChatsWithUserMessage);
+
+    const originalChats = currentChats; 
 
     setUserInput("");
     setIsLoading(true);
@@ -613,7 +577,8 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
             };
             finalChats = finalChats.map(chat =>
                 chat.id === currentChatId
-                    ? { ...chat, messages: [...chat.messages, newAssistantMessage] }
+                    // Important: use the messages from updatedChatsWithUserMessage
+                    ? { ...chat, messages: [...(updatedChatsWithUserMessage.find(c => c.id === currentChatId)?.messages || []), newAssistantMessage] }
                     : chat
             );
         } else {
@@ -631,7 +596,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
             description: "Sorry, I encountered an error. Please try again.",
         });
         // Revert the optimistic update on error
-        setChats(currentChats); 
+        setChats(originalChats); 
     } finally {
         setIsLoading(false);
     }
@@ -709,10 +674,6 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
                 </SidebarMenuAction>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-                 <DropdownMenuItem onClick={() => handleToggleArchiveChat(chat.id)}>
-                    {chat.isArchived ? <ArchiveX className="mr-2 h-4 w-4" /> : <Archive className="mr-2 h-4 w-4" />}
-                    {chat.isArchived ? "Unarchive" : "Archive"}
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleDeleteChat(chat.id)} className="text-destructive">
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete
@@ -778,21 +739,6 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
                     </SidebarGroup>
                 ))}
                 </SidebarMenu>
-
-                 {archivedChats.length > 0 && (
-                    <Collapsible className="mt-4">
-                        <CollapsibleTrigger className="flex items-center gap-1 text-sm font-medium text-muted-foreground w-full p-2 rounded-md hover:bg-accent">
-                            Archived ({archivedChats.length})
-                        </CollapsibleTrigger>
-                        <CollapsibleContent>
-                             <SidebarMenu className="mt-1">
-                                {archivedChats.map(chat => (
-                                    <ChatMenuItem key={chat.id} chat={chat} />
-                                ))}
-                            </SidebarMenu>
-                        </CollapsibleContent>
-                    </Collapsible>
-                 )}
             </ScrollArea>
         </SidebarContent>
 
@@ -973,5 +919,3 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     </>
   );
 }
-
-    
