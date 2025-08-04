@@ -45,6 +45,7 @@ export type Profile = {
   name: string;
   region: string;
   phone: string;
+  password?: string; // Optional for backward compatibility with old profiles
 }
 
 interface AuthPageProps {
@@ -55,6 +56,10 @@ interface AuthPageProps {
 
 const initialSchema = z.object({
   phone: z.string().min(1, "Phone number is required"),
+});
+
+const passwordSchema = z.object({
+  password: z.string().min(1, "Password is required"),
 });
 
 
@@ -81,9 +86,14 @@ const createSignUpSchema = (existingProfiles: Profile[]) => z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   region: z.enum(["IN", "US", "GB", "ES", "FR", "CN"]),
   phone: z.string(),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string(),
 }).refine(data => !existingProfiles.some(p => p.phone === data.phone), {
     message: "This phone number is already registered.",
     path: ["phone"],
+}).refine(data => data.password === data.confirmPassword, {
+    message: "Passwords do not match.",
+    path: ["confirmPassword"],
 }).superRefine((data, ctx) => {
     const phoneSchema = phoneValidationSchemas[data.region];
     const result = phoneSchema.safeParse(data.phone);
@@ -99,8 +109,9 @@ const createSignUpSchema = (existingProfiles: Profile[]) => z.object({
 
 export default function AuthPage({ onSignInSuccess, existingProfiles, setProfiles }: AuthPageProps) {
   const { toast } = useToast();
-  const [authMode, setAuthMode] = useState<"initial" | "signup">("initial");
+  const [authMode, setAuthMode] = useState<"initial" | "password" | "signup">("initial");
   const [isLoading, setIsLoading] = useState(true);
+  const [profileToVerify, setProfileToVerify] = useState<Profile | null>(null);
 
   const signUpSchema = createSignUpSchema(existingProfiles);
 
@@ -118,33 +129,51 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
     defaultValues: { phone: "" },
   });
 
-  const signUpForm = useForm<z.infer<typeof signUpSchema>>({
-    resolver: zodResolver(signUpSchema),
-    defaultValues: { name: "", region: "IN", phone: ""},
+  const passwordForm = useForm<z.infer<typeof passwordSchema>>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: { password: "" },
   });
 
-  const handleProfileClick = (profile: Profile) => {
-    toast({
-        title: "Login Successful",
-        description: `Welcome back, ${profile.name}!`,
-    });
-    onSignInSuccess(profile);
-  }
+  const signUpForm = useForm<z.infer<typeof signUpSchema>>({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: { name: "", region: "IN", phone: "", password: "", confirmPassword: "" },
+  });
 
   const handleInitialSubmit = (values: z.infer<typeof initialSchema>) => {
     const profile = existingProfiles.find(p => p.phone === values.phone);
     if (profile) {
-        handleProfileClick(profile);
+        // If profile exists but has no password (old profile), log them in directly
+        // Otherwise, ask for password
+        if (!profile.password) {
+            toast({
+                title: "Login Successful",
+                description: `Welcome back, ${profile.name}! Please consider setting a password in the future.`,
+            });
+            onSignInSuccess(profile);
+        } else {
+             setProfileToVerify(profile);
+             setAuthMode("password");
+        }
     } else {
         initialForm.setError("phone", {
             type: "manual",
             message: "This phone number is not registered. Please sign up.",
         });
-        toast({
-            variant: "destructive",
-            title: "Account Not Found",
-            description: "No account found with this number. Please sign up.",
-        });
+    }
+  };
+
+  const handlePasswordSubmit = (values: z.infer<typeof passwordSchema>) => {
+    if (profileToVerify && profileToVerify.password === values.password) {
+      toast({
+        title: "Login Successful",
+        description: `Welcome back, ${profileToVerify.name}!`,
+      });
+      onSignInSuccess(profileToVerify);
+    } else {
+      passwordForm.setError("password", {
+        type: "manual",
+        message: "Incorrect password. Please try again.",
+      });
     }
   };
   
@@ -154,6 +183,7 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
         name: values.name,
         region: values.region,
         phone: values.phone,
+        password: values.password,
     };
     toast({
         title: "Sign Up Successful",
@@ -162,17 +192,6 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
     const updatedProfiles = [...existingProfiles, newProfile];
     setProfiles(updatedProfiles);
     onSignInSuccess(newProfile);
-  };
-
-  const handleDeleteProfile = (profileId: string) => {
-    // Also delete associated chats
-    localStorage.removeItem(`counselai-chats-${profileId}`); 
-    const updatedProfiles = existingProfiles.filter(p => p.id !== profileId);
-    setProfiles(updatedProfiles);
-    toast({
-        title: "Profile Deleted",
-        description: "The profile has been removed.",
-    });
   };
   
   const renderInitial = () => (
@@ -215,6 +234,47 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
       </div>
     </div>
   );
+
+  const renderPasswordStep = () => (
+     <div className="w-full max-w-sm">
+        <div className="p-1 rounded-xl bg-gradient-to-br from-[#8134AF] via-[#DD2A7B] to-[#FEDA77]">
+            <Card className="border-none">
+                <CardHeader className="text-center">
+                    <BrainLogo className="w-16 h-16 mx-auto text-primary mb-4"/>
+                    <CardTitle className="text-2xl">Hi, {profileToVerify?.name}</CardTitle>
+                    <CardDescription>Enter your password to log in.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Form {...passwordForm}>
+                        <form onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)} className="space-y-4">
+                            <FormField
+                                control={passwordForm.control}
+                                name="password"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormControl>
+                                            <Input type="password" placeholder="Enter password" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <Button type="submit" className="w-full text-white font-bold bg-gradient-to-r from-[#8134AF] via-[#DD2A7B] to-[#FEDA77] hover:from-[#8134AF]/90 hover:via-[#DD2A7B]/90 hover:to-[#FEDA77]/90">
+                                Log In
+                            </Button>
+                        </form>
+                    </Form>
+                </CardContent>
+            </Card>
+        </div>
+         <div className="mt-4 text-center">
+            <Button variant="link" onClick={() => { setAuthMode("initial"); setProfileToVerify(null); }}>
+                Back to phone number entry
+            </Button>
+        </div>
+    </div>
+  );
+
 
   const renderSignUp = () => (
     <div className="w-full max-w-sm">
@@ -270,6 +330,30 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
                                 </FormItem>
                             )}
                         />
+                         <FormField
+                            control={signUpForm.control}
+                            name="password"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormControl>
+                                        <Input type="password" placeholder="Password (min. 6 characters)" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={signUpForm.control}
+                            name="confirmPassword"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormControl>
+                                        <Input type="password" placeholder="Confirm Password" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                         <Button type="submit" className="w-full !mt-6 text-white font-bold bg-gradient-to-r from-[#8134AF] via-[#DD2A7B] to-[#FEDA77] hover:from-[#8134AF]/90 hover:via-[#DD2A7B]/90 hover:to-[#FEDA77]/90">
                             Sign Up
                         </Button>
@@ -301,6 +385,8 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
     switch (authMode) {
         case "initial":
             return renderInitial();
+        case "password":
+            return renderPasswordStep();
         case "signup":
             return renderSignUp();
         default:
