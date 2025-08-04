@@ -182,49 +182,9 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
                 <CardHeader className="text-center">
                     <BrainLogo className="w-16 h-16 mx-auto text-primary mb-4"/>
                     <CardTitle className="text-3xl">Welcome back</CardTitle>
-                    <CardDescription>Select a profile to continue.</CardDescription>
+                    <CardDescription>Enter your phone number to continue.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                   <div className="space-y-3 mb-4">
-                       {existingProfiles.map(profile => (
-                            <div key={profile.id} className="flex items-center gap-3 p-2 rounded-md border bg-background/50">
-                                <Avatar className="h-10 w-10">
-                                    <AvatarFallback className="bg-destructive text-destructive-foreground font-bold">
-                                        {profile.name ? profile.name.charAt(0).toUpperCase() : <User size={24} />}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 cursor-pointer" onClick={() => handleProfileClick(profile)}>
-                                    <p className="font-semibold">{profile.name}</p>
-                                    <p className="text-xs text-muted-foreground">{profile.phone}</p>
-                                </div>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                        <AlertDialogTitle>Delete {profile.name}?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            This action cannot be undone. This will permanently delete this profile and all associated chat history.
-                                        </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction
-                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                                onClick={() => handleDeleteProfile(profile.id)}
-                                            >
-                                                Delete
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </div>
-                       ))}
-                   </div>
-                   <div className="text-center my-4 text-xs text-muted-foreground">OR</div>
                     <Form {...initialForm}>
                         <form onSubmit={initialForm.handleSubmit(handleInitialSubmit)} className="space-y-4">
                             <FormField
@@ -248,7 +208,7 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
             </Card>
         </div>
         <div className="mt-4 bg-card rounded-lg border p-4 flex items-center justify-center text-sm">
-            <p>Want to create a new profile?</p>
+            <p>Don't have an account?</p>
             <Button variant="link" className="p-1 h-auto" onClick={() => setAuthMode("signup")}>
                 Sign Up
             </Button>
@@ -356,3 +316,5 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
     </div>
   );
 }
+
+    
