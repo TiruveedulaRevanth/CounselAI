@@ -5,7 +5,7 @@ import { personalizeTherapyStyle } from "@/ai/flows/therapy-style-personalizatio
 import { summarizeChat } from "@/ai/flows/summarize-chat-flow";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Mic, Send, Settings, Trash2, MoreHorizontal, MessageSquarePlus, Square, Library, Sparkles, Siren, Edit } from "lucide-react";
+import { LogOut, Mic, Send, Settings, Trash2, MoreHorizontal, MessageSquarePlus, Square, Library, Sparkles, Siren, Edit, Archive, ArchiveX } from "lucide-react";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import ChatMessage from "./chat-message";
 import SettingsDialog from "./settings-dialog";
@@ -53,8 +53,7 @@ import { Avatar, AvatarFallback } from "./ui/avatar";
 import { User } from "lucide-react";
 import type { Profile } from "./auth-page";
 import EditProfileDialog from "./edit-profile-dialog";
-import { db } from "@/lib/firebase";
-import { doc, setDoc, onSnapshot } from "firebase/firestore";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 
 declare global {
@@ -162,70 +161,49 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const userName = currentProfile.name;
   
-  // Firestore document reference for the current user's chats
-  const chatDocRef = useMemo(() => doc(db, "chats", currentProfile.id), [currentProfile.id]);
-
-
   useEffect(() => {
     setCurrentProfile(activeProfile);
-  }, [activeProfile]);
+    // When profile changes, load their chats
+    setIsDataLoading(true);
+    try {
+        const storedChats = localStorage.getItem(`counselai-chats-${activeProfile.id}`);
+        const parsedChats = storedChats ? JSON.parse(storedChats) : [];
+        setChats(parsedChats);
+        
+        if (parsedChats.length > 0) {
+            // Set the most recent chat as active
+            const sortedChats = [...parsedChats].sort((a, b) => b.createdAt - a.createdAt);
+            setActiveChatId(sortedChats[0].id);
+        } else {
+            setActiveChatId(null);
+        }
+
+    } catch (error) {
+        console.error("Failed to load chats from local storage:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not load chat history."
+        });
+    } finally {
+        setIsDataLoading(false);
+    }
+
+  }, [activeProfile, toast]);
+  
+  // Persist chats to local storage whenever they change for the current profile
+  useEffect(() => {
+    if (!isDataLoading) {
+        localStorage.setItem(`counselai-chats-${currentProfile.id}`, JSON.stringify(chats));
+    }
+  }, [chats, currentProfile.id, isDataLoading]);
+
 
   const handleSignOut = () => {
     onSignOut();
     setChats([]);
     setActiveChatId(null);
   }
-
-  // Effect to listen for real-time chat updates from Firestore
-  useEffect(() => {
-    setIsDataLoading(true);
-    const unsubscribe = onSnapshot(chatDocRef, (doc) => {
-        if (doc.exists()) {
-            const data = doc.data();
-            const chatsData = data.chats || [];
-            
-            setChats(chatsData);
-
-            if (chatsData.length > 0 && !activeChatId) {
-                const sortedChats = [...chatsData].sort((a, b) => b.createdAt - a.createdAt);
-                setActiveChatId(sortedChats[0]?.id || null);
-            } else if (chatsData.length === 0) {
-                setActiveChatId(null);
-            }
-        } else {
-            // No document yet for this user, set empty chats
-            setChats([]);
-            setActiveChatId(null);
-        }
-        setIsDataLoading(false);
-    }, (error) => {
-        console.error("Error fetching chats from Firestore:", error);
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Could not load chat history."
-        });
-        setIsDataLoading(false);
-    });
-
-    // Cleanup subscription on component unmount
-    return () => unsubscribe();
-  }, [chatDocRef, toast, activeChatId]);
-
-
-  const updateChatsInFirestore = async (newChats: Chat[]) => {
-    try {
-        await setDoc(chatDocRef, { chats: newChats }, { merge: true });
-    } catch (error) {
-        console.error("Error saving chats to Firestore:", error);
-        toast({
-            variant: "destructive",
-            title: "Sync Error",
-            description: "Could not save your latest message. Please try again."
-        });
-    }
-  };
-
 
   const handleProfileUpdate = (updatedProfile: Profile) => {
     setCurrentProfile(updatedProfile);
@@ -243,13 +221,6 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
   };
 
   const handleDeleteProfile = async () => {
-    // Delete Firestore document
-    try {
-        await setDoc(chatDocRef, { chats: [] }); // Clear the chats
-    } catch (error) {
-        console.error("Could not clear Firestore data:", error);
-    }
-    
     // Remove profile from localStorage
     const storedProfiles = localStorage.getItem("counselai-profiles");
     if (storedProfiles) {
@@ -257,6 +228,8 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         const updatedProfiles = profiles.filter(p => p.id !== currentProfile.id);
         localStorage.setItem("counselai-profiles", JSON.stringify(updatedProfiles));
     }
+     // Also delete associated chats from localStorage
+    localStorage.removeItem(`counselai-chats-${currentProfile.id}`);
     
     toast({
         title: "Profile Deleted",
@@ -266,7 +239,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     handleSignOut();
   };
   
-  const createNewChat = async () => {
+  const createNewChat = () => {
     const newChat: Chat = {
       id: `chat-${Date.now()}`,
       name: "New Chat",
@@ -275,11 +248,10 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     };
     const updatedChats = [newChat, ...chats];
     setChats(updatedChats);
-    await updateChatsInFirestore(updatedChats);
     setActiveChatId(newChat.id);
   };
 
-  const handleDeleteChat = async (chatId: string) => {
+  const handleDeleteChat = (chatId: string) => {
     const updatedChats = chats.filter(c => c.id !== chatId);
     
     if (activeChatId === chatId) {
@@ -287,10 +259,9 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         setActiveChatId(sortedRemaining[0]?.id || null);
     }
     setChats(updatedChats);
-    await updateChatsInFirestore(updatedChats);
   };
 
-  const handleScopedDelete = async () => {
+  const handleScopedDelete = () => {
     const now = Date.now();
     let chatsToKeep: Chat[];
 
@@ -315,7 +286,6 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     }
     
     setChats(chatsToKeep);
-    await updateChatsInFirestore(chatsToKeep);
 
     if (chatsToKeep.length > 0) {
         const isCurrentChatDeleted = !chatsToKeep.some(c => c.id === activeChatId);
@@ -333,7 +303,6 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     setDeleteScope(scope);
     setIsBulkDeleteOpen(true);
   }
-
 
   const activeChat = useMemo(() => chats.find(chat => chat.id === activeChatId), [chats, activeChatId]);
 
@@ -369,7 +338,6 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         { label: "Previous 30 Days", chats: last30Days },
         { label: "Older", chats: older }
     ].filter(group => group.chats.length > 0);
-
   }, [chats]);
 
   const speakText = useCallback((text: string) => {
@@ -502,17 +470,17 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
 
     // If no active chat, create one first
     if (!currentChatId || !currentChat) {
-      const newChat: Chat = {
-        id: `chat-${Date.now()}`,
-        name: "New Chat",
-        messages: [],
-        createdAt: Date.now(),
-      };
-      currentChats = [newChat, ...currentChats];
-      currentChat = newChat;
-      currentChatId = newChat.id;
-      setActiveChatId(newChat.id);
-      setChats(currentChats);
+        const newChat: Chat = {
+            id: `chat-${Date.now()}`,
+            name: "New Chat",
+            messages: [],
+            createdAt: Date.now(),
+        };
+        currentChats = [newChat, ...currentChats];
+        currentChat = newChat;
+        currentChatId = newChat.id;
+        setActiveChatId(newChat.id);
+        setChats(currentChats); // This will also trigger the save to localStorage
     }
 
     const isFirstMessage = currentChat.messages.length === 0;
@@ -526,6 +494,9 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     // This is the history that will be sent to the AI
     const historyForAI = [...currentChat.messages, newUserMessage].map(({ role, content }) => ({ role, content }));
     
+    // Create a snapshot of the current chats to revert to on error
+    const originalChats = [...chats];
+
     // Optimistically update the local state for a responsive UI
     const updatedChatsWithUserMessage = currentChats.map(chat =>
         chat.id === currentChatId
@@ -533,8 +504,6 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
             : chat
     );
     setChats(updatedChatsWithUserMessage);
-
-    const originalChats = currentChats; 
 
     setUserInput("");
     setIsLoading(true);
@@ -577,8 +546,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
             };
             finalChats = finalChats.map(chat =>
                 chat.id === currentChatId
-                    // Important: use the messages from updatedChatsWithUserMessage
-                    ? { ...chat, messages: [...(updatedChatsWithUserMessage.find(c => c.id === currentChatId)?.messages || []), newAssistantMessage] }
+                    ? { ...chat, messages: [...(finalChats.find(c => c.id === currentChatId)?.messages || []), newAssistantMessage] }
                     : chat
             );
         } else {
@@ -586,7 +554,6 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         }
 
         setChats(finalChats);
-        await updateChatsInFirestore(finalChats);
 
     } catch (error) {
         console.error("Error calling AI:", error);
@@ -596,7 +563,17 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
             description: "Sorry, I encountered an error. Please try again.",
         });
         // Revert the optimistic update on error
-        setChats(originalChats); 
+        const userMessageId = newUserMessage.id;
+        const revertedChats = originalChats.map(chat => {
+            if (chat.id === currentChatId) {
+                return {
+                    ...chat,
+                    messages: chat.messages.filter(msg => msg.id !== userMessageId)
+                };
+            }
+            return chat;
+        });
+        setChats(revertedChats);
     } finally {
         setIsLoading(false);
     }
@@ -919,3 +896,5 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     </>
   );
 }
+
+    
