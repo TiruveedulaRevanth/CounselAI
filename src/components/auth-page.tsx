@@ -159,61 +159,61 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
   
   const renderLogin = () => (
     <div className="w-full max-w-sm">
-        <div className="p-1 rounded-xl bg-gradient-to-br from-primary/70 via-accent to-primary/30">
-            <Card className="border-none">
-                <CardHeader className="text-center">
-                    <BrainLogo className="w-16 h-16 mx-auto text-primary mb-4"/>
-                    <CardTitle className="text-3xl">Welcome back</CardTitle>
-                    <CardDescription>Enter your phone number to continue.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Form {...loginForm}>
-                        <form onSubmit={loginForm.handleSubmit(handleLoginSubmit)} className="space-y-4">
-                            <FormField
-                                control={loginForm.control}
-                                name="phone"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormControl>
-                                            <Input placeholder="Enter phone number" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <Button type="submit" className="w-full text-white font-bold bg-primary hover:bg-primary/90">
-                                Continue
-                            </Button>
-                        </form>
-                    </Form>
-                </CardContent>
-            </Card>
+        <Card>
+            <CardHeader className="text-center">
+                <BrainLogo className="w-20 h-20 mx-auto mb-4"/>
+                <CardTitle className="text-3xl font-bold">Welcome back</CardTitle>
+                <CardDescription>Enter your phone number to sign in.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Form {...loginForm}>
+                    <form onSubmit={loginForm.handleSubmit(handleLoginSubmit)} className="space-y-4">
+                        <FormField
+                            control={loginForm.control}
+                            name="phone"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormControl>
+                                        <Input placeholder="Enter phone number" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <Button type="submit" className="w-full font-bold">
+                            Continue
+                        </Button>
+                    </form>
+                </Form>
+            </CardContent>
+        </Card>
+        <div className="mt-4 text-center text-sm">
+            <p>Don't have an account?{' '}
+                <Button variant="link" className="p-0 h-auto" onClick={() => setAuthMode("signup")}>
+                    Sign Up
+                </Button>
+            </p>
         </div>
-        <div className="mt-4 bg-card rounded-lg border p-4 flex items-center justify-center text-sm">
-            <p>Don't have an account?</p>
-            <Button variant="link" className="p-1 h-auto" onClick={() => setAuthMode("signup")}>
-                Sign Up
-            </Button>
-      </div>
     </div>
   );
 
   const renderSignUp = () => (
     <div className="w-full max-w-sm">
-        <div className="p-1 rounded-xl bg-gradient-to-br from-primary/70 via-accent to-primary/30">
-            <div className="w-full bg-background rounded-lg p-8">
-                <div className="text-center mb-6">
-                    <BrainLogo className="w-12 h-12 mx-auto text-primary mb-4"/>
-                    <h2 className="font-semibold text-muted-foreground">Sign up to start your journey with CounselAI.</h2>
-                </div>
-
+        <Card>
+            <CardHeader className="text-center">
+                <BrainLogo className="w-20 h-20 mx-auto mb-4"/>
+                <CardTitle className="text-3xl font-bold">Create an Account</CardTitle>
+                <CardDescription>Sign up to start your journey with CounselAI.</CardDescription>
+            </CardHeader>
+            <CardContent>
                 <Form {...signUpForm}>
-                    <form onSubmit={signUpForm.handleSubmit(handleSignUp)} className="space-y-3">
+                    <form onSubmit={signUpForm.handleSubmit(handleSignUp)} className="space-y-4">
                         <FormField
                             control={signUpForm.control}
                             name="name"
                             render={({ field }) => (
                                 <FormItem>
+                                    <FormLabel>Name</FormLabel>
                                     <FormControl>
                                         <Input placeholder="Full Name" {...field} />
                                     </FormControl>
@@ -226,6 +226,7 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
                             name="region"
                             render={({ field }) => (
                                 <FormItem>
+                                    <FormLabel>Region</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
                                         <SelectTrigger>
@@ -245,6 +246,7 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
                             name="phone"
                             render={({ field }) => (
                                 <FormItem>
+                                    <FormLabel>Phone Number</FormLabel>
                                     <FormControl>
                                         <Input placeholder="Phone number" {...field} />
                                     </FormControl>
@@ -252,18 +254,17 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
                                 </FormItem>
                             )}
                         />
-                        <Button type="submit" className="w-full !mt-6 text-white font-bold bg-primary hover:bg-primary/90">
+                        <Button type="submit" className="w-full font-bold">
                             Sign Up
                         </Button>
                     </form>
                 </Form>
-            </div>
-        </div>
+            </CardContent>
+        </Card>
         {existingProfiles.length > 0 && (
-            <div className="mt-4 bg-card rounded-lg border p-4 text-center">
-                <p className="text-sm">
-                    Have an account?{' '}
-                    <Button variant="link" className="p-1 h-auto" onClick={() => { setAuthMode("login"); }}>
+             <div className="mt-4 text-center text-sm">
+                <p>Have an account?{' '}
+                    <Button variant="link" className="p-0 h-auto" onClick={() => { setAuthMode("login"); }}>
                         Log in
                     </Button>
                 </p>

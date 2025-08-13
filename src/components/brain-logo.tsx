@@ -21,7 +21,7 @@ export const BrainLogo = ({ className }: { className?: string }) => (
            <stop offset="100%" stopColor="hsl(var(--accent))" />
         </linearGradient>
       </defs>
-      <path d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2z" />
+      <path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23-1.03 1.2-2.43 2.1-4.04 2.65-.9.3-1.85.3-2.78.02-2.13-.64-3.8-2.2-4.57-4.22A6.5 6.5 0 0 1 9.5 3zM4.5 14A6.5 6.5 0 0 0 11 20.5c3.27 0 6.02-2.4 6.44-5.5H11A6.5 6.5 0 0 1 4.5 14z" />
     </svg>
     <Sprout className="h-[55%] w-[55%] text-primary" stroke="hsl(var(--primary))" strokeWidth={1.5}/>
   </div>
