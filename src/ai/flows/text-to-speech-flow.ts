@@ -19,7 +19,6 @@ export type TextToSpeechInput = z.infer<typeof TextToSpeechInputSchema>;
 
 const TextToSpeechOutputSchema = z.object({
   audio: z.string().describe("The generated audio as a data URI in WAV format. Expected format: 'data:audio/wav;base64,<encoded_data>'.").optional(),
-  disabled: z.boolean().optional(),
 });
 export type TextToSpeechOutput = z.infer<typeof TextToSpeechOutputSchema>;
 
@@ -79,7 +78,7 @@ const textToSpeechFlow = ai.defineFlow(
 
         if (!media) {
             console.error('No audio media was returned from the TTS model.');
-            return { audio: undefined, disabled: true };
+            return { audio: undefined };
         }
 
         // The audio data is a base64 encoded string after the comma
@@ -96,7 +95,7 @@ const textToSpeechFlow = ai.defineFlow(
     } catch(error) {
         console.error("Error in textToSpeechFlow (likely a rate limit or API issue):", error);
         // Return an empty audio object so the client can handle it gracefully
-        return { audio: undefined, disabled: true };
+        return { audio: undefined };
     }
   }
 );

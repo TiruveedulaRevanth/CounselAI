@@ -384,52 +384,38 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     stopSpeakingRef.current = false;
     setIsSpeaking(true);
   
-    // Split text into sentences. This regex handles various sentence endings.
-    const sentences = text.match(/[^.!?]+[.!?]+["]?/g) || [text];
+    try {
+      const { audio } = await textToSpeech({ text });
   
-    if (!audioRef.current) {
-      audioRef.current = new Audio();
-    }
-  
-    for (const sentence of sentences) {
       if (stopSpeakingRef.current) {
-        break;
+        setIsSpeaking(false);
+        return;
       }
   
-      try {
-        const { audio, disabled } = await textToSpeech({ text: sentence.trim() });
-  
-        if (stopSpeakingRef.current || disabled) {
-          break;
+      if (audio) {
+        if (!audioRef.current) {
+          audioRef.current = new Audio();
         }
-  
-        if (audio) {
-          const audioPromise = new Promise<void>((resolve, reject) => {
-            if (audioRef.current) {
-                audioRef.current.src = audio;
-                audioRef.current.onended = () => resolve();
-                audioRef.current.onerror = () => reject(new Error('Audio playback error'));
-                audioRef.current.play().catch(reject);
-            } else {
-                reject(new Error("Audio element not available."));
-            }
-          });
-          await audioPromise;
-        }
-      } catch (error) {
-        console.error("Error during TTS playback:", error);
-        toast({
-          variant: "destructive",
-          title: "Speech Error",
-          description: "Could not generate or play audio for a sentence.",
+        audioRef.current.src = audio;
+        audioRef.current.onended = () => {
+          setIsSpeaking(false);
+        };
+        audioRef.current.play().catch(err => {
+            console.error("Audio playback error:", err);
+            setIsSpeaking(false);
         });
-        break; 
+      } else {
+        setIsSpeaking(false);
       }
+    } catch (error) {
+      console.error("Error during TTS generation:", error);
+      toast({
+        variant: "destructive",
+        title: "Speech Error",
+        description: "Could not generate or play audio.",
+      });
+      setIsSpeaking(false);
     }
-  
-    setIsSpeaking(false);
-    stopSpeakingRef.current = false;
-  
   }, [isSpeaking, toast]);
 
   const handleStopSpeaking = () => {
