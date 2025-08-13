@@ -89,34 +89,42 @@ export const therapyStyles = [
     name: "Empathetic Friend",
     description: "A warm, validating partner for your emotional journey.",
     mascot: "https://placehold.co/100x100.png",
-    mascotHint: "pastel fox",
+    mascotHint: "pastel fox gentle",
     prompt:
-      "When responding, reference something I said earlier in the conversation to show you’re paying attention, and gently validate my efforts or emotional state without trying to fix it. Use warm, natural, human-like phrasing — like a thoughtful friend would.",
+      "Act as an Empathetic Friend. Your tone should be warm, validating, and supportive. Focus on listening and understanding the user's feelings. Use phrases that show you're paying attention and that you care. Avoid giving direct advice unless asked; prioritize making the user feel heard and less alone.",
   },
   {
-    name: "Honest Coach",
-    description: "Direct, action-oriented guidance to help you move forward.",
+    name: "Solution Focused",
+    description: "Practical, goal-oriented guidance to find solutions.",
     mascot: "https://placehold.co/100x100.png",
-    mascotHint: "bold lion",
+    mascotHint: "architect blueprint",
     prompt:
-      "Act as a solution-focused coach. Your tone is direct, supportive, and practical. Validate the user's feelings quickly, then shift focus to action. Ask clarifying questions to identify the core challenge and help the user brainstorm concrete, actionable steps. Use lists to organize suggestions and maintain a clear, structured conversation. Your goal is to empower the user to solve their problem.",
+      "Act as a Solution-Focused therapist. Your tone is practical, clear, and goal-oriented. Help the user identify specific, achievable goals. Ask questions that shift focus from the problem to potential solutions, such as 'What would it look like if this problem were solved?' or 'What's one small step you could take?'. Use lists to organize suggestions and maintain a structured, forward-moving conversation.",
   },
   {
     name: "Wise Mentor",
     description: "Calm, philosophical insights to broaden your perspective.",
     mascot: "https://placehold.co/100x100.png",
-    mascotHint: "wise owl",
+    mascotHint: "wise owl book",
     prompt:
-      "Embody a wise, philosophical mentor. Your tone is calm, patient, and inquisitive. Respond with thoughtful, open-ended questions that encourage deep reflection. Use metaphors and analogies to offer new perspectives on the user's situation. Avoid giving direct advice; instead, guide the user to find their own wisdom and insights. The goal is to foster self-discovery and a broader understanding of their life.",
+      "Embody a Wise Mentor. Your tone is calm, patient, and inquisitive. Respond with thoughtful, open-ended questions that encourage deep reflection. Use metaphors and analogies to offer new perspectives on the user's situation. Avoid giving direct advice; instead, guide the user to find their own wisdom and insights. The goal is to foster self-discovery and a broader understanding of their life.",
   },
   {
-    name: "Motivational Challenger",
+    name: "Motivational Speaker",
     description: "Energetic, uplifting encouragement to conquer your goals.",
     mascot: "https://placehold.co/100x100.png",
-    mascotHint: "energetic hummingbird",
+    mascotHint: "energetic hummingbird lightning",
     prompt:
-      "You are a motivational challenger. Your tone is energetic, positive, and uplifting. Use powerful, encouraging language to inspire the user. Help them break down their goals into smaller, manageable challenges. Celebrate their efforts and reframe setbacks as learning opportunities. Your primary goal is to boost the user's confidence and motivation, acting as a high-energy partner in their corner.",
+      "You are a Motivational Speaker. Your tone is energetic, positive, and uplifting. Use powerful, encouraging language to inspire the user. Help them break down their goals into smaller, manageable challenges. Celebrate their efforts and reframe setbacks as learning opportunities. Your primary goal is to boost the user's confidence and motivation, acting as a high-energy partner in their corner.",
   },
+  {
+    name: "CBT",
+    description: "Cognitive-Behavioral tools to reframe negative thoughts.",
+    mascot: "https://placehold.co/100x100.png",
+    mascotHint: "brain puzzle gears",
+    prompt:
+        "Adopt a Cognitive-Behavioral Therapy (CBT) approach. Your tone is educational and collaborative. Focus on helping the user identify and challenge unhelpful thought patterns (cognitive distortions) and behaviors. Guide them to see the connection between their thoughts, feelings, and actions. Offer to guide them through structured exercises, such as thought records or behavioral experiments. For example, 'That sounds like a painful thought. Is there any evidence that contradicts it?' or 'Let's try to look at this from another angle.'",
+  }
 ];
 
 export const supportedLanguages = [
@@ -126,6 +134,10 @@ export const supportedLanguages = [
     { name: 'Español', code: 'es-ES' },
     { name: '中文 (Mandarin)', code: 'zh-CN' },
 ];
+
+export type CustomPersona = {
+    [key: string]: number;
+}
 
 
 interface EmpathAIClientProps {
@@ -163,6 +175,13 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
   const [therapyStyle, setTherapyStyle] = useState(therapyStyles[0].prompt);
   const [selectedLanguage, setSelectedLanguage] = useState(supportedLanguages[0].code);
   const [activePersona, setActivePersona] = useState(therapyStyles[0]);
+  const [customPersona, setCustomPersona] = useState<CustomPersona>({
+    [therapyStyles[0].name]: 100,
+    [therapyStyles[1].name]: 0,
+    [therapyStyles[2].name]: 0,
+    [therapyStyles[3].name]: 0,
+    [therapyStyles[4].name]: 0,
+  });
   
   const [currentProfile, setCurrentProfile] = useState(activeProfile);
   const [isDataLoading, setIsDataLoading] = useState(true);
@@ -185,8 +204,16 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         // Load settings
         const storedStyle = localStorage.getItem(`counselai-therapy-style-${activeProfile.id}`);
         const storedPersonaName = localStorage.getItem(`counselai-persona-${activeProfile.id}`);
+        const storedCustomPersona = localStorage.getItem(`counselai-custom-persona-${activeProfile.id}`);
         const persona = therapyStyles.find(p => p.name === storedPersonaName) || therapyStyles[0];
-        setActivePersona(persona);
+        
+        if (storedPersonaName === 'Custom' && storedCustomPersona) {
+            const customPersonaData = JSON.parse(storedCustomPersona);
+            setCustomPersona(customPersonaData);
+            setActivePersona({ name: 'Custom', mascot: '', mascotHint: '', description: '', prompt: storedStyle || ''});
+        } else {
+             setActivePersona(persona);
+        }
         setTherapyStyle(storedStyle || persona.prompt);
         
         if (parsedChats.length > 0) {
@@ -215,8 +242,11 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         localStorage.setItem(`counselai-chats-${currentProfile.id}`, JSON.stringify(chats));
         localStorage.setItem(`counselai-therapy-style-${currentProfile.id}`, therapyStyle);
         localStorage.setItem(`counselai-persona-${currentProfile.id}`, activePersona.name);
+        if (activePersona.name === 'Custom') {
+            localStorage.setItem(`counselai-custom-persona-${currentProfile.id}`, JSON.stringify(customPersona));
+        }
     }
-  }, [chats, therapyStyle, activePersona, currentProfile.id, isDataLoading]);
+  }, [chats, therapyStyle, activePersona, customPersona, currentProfile.id, isDataLoading]);
 
 
   const handleSignOut = () => {
@@ -252,6 +282,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     localStorage.removeItem(`counselai-chats-${currentProfile.id}`);
     localStorage.removeItem(`counselai-therapy-style-${currentProfile.id}`);
     localStorage.removeItem(`counselai-persona-${currentProfile.id}`);
+    localStorage.removeItem(`counselai-custom-persona-${currentProfile.id}`);
     
     toast({
         title: "Profile Deleted",
@@ -387,7 +418,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     ].filter(group => group.chats.length > 0);
   }, [chats]);
   
- const speakText = useCallback(async (text: string) => {
+  const speakText = useCallback(async (text: string) => {
     if (isSpeaking) {
       handleStopSpeaking();
       return;
@@ -397,7 +428,6 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     setIsSpeaking(true);
   
     try {
-      // Generate audio for the whole text at once for reliability
       const { audio } = await textToSpeech({ text });
 
       if (stopSpeakingRef.current) {
@@ -766,6 +796,8 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
           setIsSettingsOpen={setIsSettingsOpen}
           activePersona={activePersona}
           setActivePersona={setActivePersona}
+          customPersona={customPersona}
+          setCustomPersona={setCustomPersona}
         />
         <EditProfileDialog 
             isOpen={isEditProfileOpen}
@@ -832,7 +864,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
           <header className="flex items-center justify-between p-4 border-b shrink-0">
             <div className="flex items-center gap-2">
                 <SidebarTrigger tooltip="Toggle chat history" />
-                 {activePersona.name === 'Custom' ? (
+                 {activePersona.name === 'Custom' || !activePersona.mascot ? (
                   <BrainLogo className="w-8 h-8"/>
                  ) : (
                   <Image src={activePersona.mascot} alt={`${activePersona.name} mascot`} width={32} height={32} className="rounded-full" data-ai-hint={activePersona.mascotHint} />

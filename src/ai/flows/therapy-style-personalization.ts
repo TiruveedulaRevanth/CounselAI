@@ -2,7 +2,7 @@
 'use server';
 
 /**
- * @fileOverview Personalizes the AI's therapeutic approach based on a text-defined therapy style.
+ * @fileOverview Personalizes the AI's therapeutic approach based on a user-defined therapy style.
  *
  * - personalizeTherapyStyle - A function that personalizes the therapy style.
  * - PersonalizeTherapyStyleInput - The input type for the personalizeTherapyStyle function.
@@ -22,7 +22,7 @@ const PersonalizeTherapyStyleInputSchema = z.object({
   therapyStyle: z
     .string()
     .describe(
-      'A description of the desired therapy style, including techniques and approaches.'
+      'A description of the desired therapy style, including techniques, approaches, and personality weightings.'
     ),
   userInput: z.string().describe('The user input or question.'),
   history: z.array(MessageSchema).optional().describe("The user's recent conversation history. The last message is the user's current input."),
@@ -71,7 +71,7 @@ You have three critical guidelines that you MUST follow before generating any re
     *   **Suggest Actionable Tools:** When appropriate, gently offer to guide the user through a simple, beginner-friendly therapeutic technique from CBT or DBT. Frame it as an invitation. For example: "I hear that you're feeling overwhelmed; would you be open to trying a simple grounding technique together?", "That sounds like a very painful thought. If you're open to it, we could try to reframe it.", or "It sounds like you're being hard on yourself. Sometimes it helps to list three things we did right today. Would you like to try that?"
     *   **Ask for Consent on Sensitive Topics:** When the conversation touches on highly sensitive topics like trauma, grief, or deep-seated issues of self-worth, you MUST ask for permission before offering deeper analysis or suggestions. Use gentle, invitational phrases. For example: "That's a very deep feeling. I have some thoughts on that, but I want to make sure you're comfortable hearing them. Would it be okay if I shared?" or "That sounds incredibly painful to carry. I have a suggestion for a perspective shift that might help, but only if you're open to it. Shall I continue?" This ensures the user feels in control.
     *   **Maintain Continuity & Use Personalization:** Refer back to the 'Conversation History' to create a sense of continuity. Acknowledge previous points the user has made to show you are listening. If the user's name, {{userName}}, is provided, use it occasionally and naturally to build rapport. If the user previously found a specific comfort strategy helpful (e.g., a breathing exercise), remember that and offer it again when relevant (e.g., “Would it help if I walked you through that breathing exercise again, {{userName}}?”).
-    *   **Adopt the Persona:** Fully adopt the specified therapy style to provide a supportive, non-medical response.
+    *   **Adopt the Persona:** Fully adopt the specified therapy style. If the style is a blend of personas, you must synthesize them according to the specified percentages. For example, if the user requests '60% Empathetic Friend and 40% Solution Focused', your response should primarily be warm and validating, but also include clear, actionable steps.
 `,
   prompt: `User's Name: {{#if userName}}{{userName}}{{else}}Not provided{{/if}}
 Therapy Style: {{{therapyStyle}}}
