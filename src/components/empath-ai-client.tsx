@@ -168,6 +168,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
   const speechRecognition = useRef<any>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const stopSpeakingRef = useRef<boolean>(false);
   const userName = currentProfile.name;
   
   useEffect(() => {
@@ -373,37 +374,66 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         { label: "Older", chats: older }
     ].filter(group => group.chats.length > 0);
   }, [chats]);
-
+  
   const speakText = useCallback(async (text: string) => {
     if (isSpeaking) {
       handleStopSpeaking();
+      return;
     }
+  
+    stopSpeakingRef.current = false;
     setIsSpeaking(true);
-    try {
-      const { audio } = await textToSpeech({ text });
-      if (audio) {
-        if (!audioRef.current) {
-          audioRef.current = new Audio();
-          audioRef.current.onended = () => setIsSpeaking(false);
-          audioRef.current.onerror = () => setIsSpeaking(false);
-        }
-        audioRef.current.src = audio;
-        audioRef.current.play();
-      } else {
-        setIsSpeaking(false);
-      }
-    } catch (error) {
-      console.error("Error generating speech:", error);
-      setIsSpeaking(false);
-      toast({
-        variant: "destructive",
-        title: "Speech Error",
-        description: "Could not generate audio for the response.",
-      });
+  
+    // Split text into sentences. This regex handles various sentence endings.
+    const sentences = text.match(/[^.!?]+[.!?]+["]?/g) || [text];
+  
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
     }
+  
+    for (const sentence of sentences) {
+      if (stopSpeakingRef.current) {
+        break;
+      }
+  
+      try {
+        const { audio, disabled } = await textToSpeech({ text: sentence.trim() });
+  
+        if (stopSpeakingRef.current || disabled) {
+          break;
+        }
+  
+        if (audio) {
+          const audioPromise = new Promise<void>((resolve, reject) => {
+            if (audioRef.current) {
+                audioRef.current.src = audio;
+                audioRef.current.onended = () => resolve();
+                audioRef.current.onerror = () => reject(new Error('Audio playback error'));
+                audioRef.current.play().catch(reject);
+            } else {
+                reject(new Error("Audio element not available."));
+            }
+          });
+          await audioPromise;
+        }
+      } catch (error) {
+        console.error("Error during TTS playback:", error);
+        toast({
+          variant: "destructive",
+          title: "Speech Error",
+          description: "Could not generate or play audio for a sentence.",
+        });
+        break; 
+      }
+    }
+  
+    setIsSpeaking(false);
+    stopSpeakingRef.current = false;
+  
   }, [isSpeaking, toast]);
 
   const handleStopSpeaking = () => {
+    stopSpeakingRef.current = true;
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -951,3 +981,5 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     </>
   );
 }
+
+    
