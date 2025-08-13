@@ -58,7 +58,7 @@ import EditProfileDialog from "./edit-profile-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-
+import Image from 'next/image';
 
 declare global {
   interface Window {
@@ -84,37 +84,38 @@ export type Chat = {
 
 type DeletionScope = "today" | "week" | "month" | "all";
 
-
 export const therapyStyles = [
   {
     name: "Empathetic Friend",
+    description: "A warm, validating partner for your emotional journey.",
+    mascot: "https://placehold.co/100x100.png",
+    mascotHint: "pastel fox",
     prompt:
       "When responding, reference something I said earlier in the conversation to show you’re paying attention, and gently validate my efforts or emotional state without trying to fix it. Use warm, natural, human-like phrasing — like a thoughtful friend would.",
   },
   {
-    name: "Mindfulness Coach",
+    name: "Honest Coach",
+    description: "Direct, action-oriented guidance to help you move forward.",
+    mascot: "https://placehold.co/100x100.png",
+    mascotHint: "bold lion",
     prompt:
-      "You are a mindfulness coach. Your tone should be gentle, calm, and grounding. Guide the user to the present moment. Use short sentences and incorporate pauses (like new paragraphs) to slow down the pace. Acknowledge their feelings without judgment, then gently guide them to notice their breath or physical sensations (e.g., 'I hear that you're feeling anxious. Let's just pause for a moment. Can you notice your feet on the floor?'). Avoid analysis; focus on somatic awareness and use their name to gently bring them back to the present.",
+      "Act as a solution-focused coach. Your tone is direct, supportive, and practical. Validate the user's feelings quickly, then shift focus to action. Ask clarifying questions to identify the core challenge and help the user brainstorm concrete, actionable steps. Use lists to organize suggestions and maintain a clear, structured conversation. Your goal is to empower the user to solve their problem.",
   },
   {
-    name: "Cognitive Behavioral (CBT)",
+    name: "Wise Mentor",
+    description: "Calm, philosophical insights to broaden your perspective.",
+    mascot: "https://placehold.co/100x100.png",
+    mascotHint: "wise owl",
     prompt:
-      "Act as a CBT-informed guide, operating at an 8.5/10 intensity. Your tone is supportive and collaborative. First, validate the user's emotional state. Then, gently help them identify specific unhelpful thinking patterns (like black-and-white thinking or catastrophizing). Use Socratic questioning to help them explore their thought patterns (eg., 'What's the evidence for that thought? Is there another way to look at this?'). Guide them toward cognitive restructuring without sounding robotic or overly scripted. Use the user's name to create a collaborative feeling.",
-  },
-   {
-    name: "Solution-Focused",
-    prompt:
-      "Stay in solution-focused counseling mode at an 8.5/10 intensity. Keep the tone hopeful, practical, and slightly conversational. First, validate their feelings. Then, shift the focus toward their goals, strengths, and past successes ('When have you dealt with something similar before? What worked then?'). Use questions like the 'miracle question' ('If a miracle happened tonight and this problem was solved, what would be different?'). Help the user identify small, concrete steps they can take. When suggesting steps, please format your response as a list of points, each followed by a brief explanation. Do not use long paragraphs. Use their name to reinforce their capability.",
+      "Embody a wise, philosophical mentor. Your tone is calm, patient, and inquisitive. Respond with thoughtful, open-ended questions that encourage deep reflection. Use metaphors and analogies to offer new perspectives on the user's situation. Avoid giving direct advice; instead, guide the user to find their own wisdom and insights. The goal is to foster self-discovery and a broader understanding of their life.",
   },
   {
-    name: "Narrative Therapist",
+    name: "Motivational Challenger",
+    description: "Energetic, uplifting encouragement to conquer your goals.",
+    mascot: "https://placehold.co/100x100.png",
+    mascotHint: "energetic hummingbird",
     prompt:
-      "Use narrative therapy principles at a moderate 8.5/10 level. Keep the tone accessible and emotionally resonant. Help the user reflect on their life story and the narratives they hold about themselves. Ask open-ended questions that externalize the problem (e.g., 'What has anxiety been telling you to do?'). Encourage them to identify their values and strength or resistance to the problem's influence. Focus on helping them see themselves as the author of their own life story, avoiding overly academic language. Use their name to make the exploration feel personal.",
-  },
-  {
-    name: "Motivational Interviewing",
-    prompt:
-      "Use motivational interviewing techniques with an 8.5/10 balance. Your main tools are asking open-ended questions, providing affirmations, listening reflectively, and summarizing. The goal is to help the user resolve their own ambivalence about change with subtle guidance. Avoid giving direct advice. Instead, ask questions like 'What are some of the reasons you might want to make a change?' or reflect back what you hear: 'It sounds like on one hand you feel X, and on the other you feel Y.' Focus on their autonomy and strengths, and use their name to build rapport.",
+      "You are a motivational challenger. Your tone is energetic, positive, and uplifting. Use powerful, encouraging language to inspire the user. Help them break down their goals into smaller, manageable challenges. Celebrate their efforts and reframe setbacks as learning opportunities. Your primary goal is to boost the user's confidence and motivation, acting as a high-energy partner in their corner.",
   },
 ];
 
@@ -161,6 +162,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
   // Settings state
   const [therapyStyle, setTherapyStyle] = useState(therapyStyles[0].prompt);
   const [selectedLanguage, setSelectedLanguage] = useState(supportedLanguages[0].code);
+  const [activePersona, setActivePersona] = useState(therapyStyles[0]);
   
   const [currentProfile, setCurrentProfile] = useState(activeProfile);
   const [isDataLoading, setIsDataLoading] = useState(true);
@@ -179,9 +181,15 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         const storedChats = localStorage.getItem(`counselai-chats-${activeProfile.id}`);
         const parsedChats = storedChats ? JSON.parse(storedChats) : [];
         setChats(parsedChats);
+
+        // Load settings
+        const storedStyle = localStorage.getItem(`counselai-therapy-style-${activeProfile.id}`);
+        const storedPersonaName = localStorage.getItem(`counselai-persona-${activeProfile.id}`);
+        const persona = therapyStyles.find(p => p.name === storedPersonaName) || therapyStyles[0];
+        setActivePersona(persona);
+        setTherapyStyle(storedStyle || persona.prompt);
         
         if (parsedChats.length > 0) {
-            // Set the most recent chat as active
             const sortedChats = [...parsedChats].sort((a, b) => b.createdAt - a.createdAt);
             setActiveChatId(sortedChats[0].id);
         } else {
@@ -189,11 +197,11 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         }
 
     } catch (error) {
-        console.error("Failed to load chats from local storage:", error);
+        console.error("Failed to load data from local storage:", error);
         toast({
             variant: "destructive",
             title: "Error",
-            description: "Could not load chat history."
+            description: "Could not load your data."
         });
     } finally {
         setIsDataLoading(false);
@@ -201,12 +209,14 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
 
   }, [activeProfile, toast]);
   
-  // Persist chats to local storage whenever they change for the current profile
+  // Persist chats and settings to local storage whenever they change for the current profile
   useEffect(() => {
     if (!isDataLoading) {
         localStorage.setItem(`counselai-chats-${currentProfile.id}`, JSON.stringify(chats));
+        localStorage.setItem(`counselai-therapy-style-${currentProfile.id}`, therapyStyle);
+        localStorage.setItem(`counselai-persona-${currentProfile.id}`, activePersona.name);
     }
-  }, [chats, currentProfile.id, isDataLoading]);
+  }, [chats, therapyStyle, activePersona, currentProfile.id, isDataLoading]);
 
 
   const handleSignOut = () => {
@@ -238,8 +248,10 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         const updatedProfiles = profiles.filter(p => p.id !== currentProfile.id);
         localStorage.setItem("counselai-profiles", JSON.stringify(updatedProfiles));
     }
-     // Also delete associated chats from localStorage
+     // Also delete associated data from localStorage
     localStorage.removeItem(`counselai-chats-${currentProfile.id}`);
+    localStorage.removeItem(`counselai-therapy-style-${currentProfile.id}`);
+    localStorage.removeItem(`counselai-persona-${currentProfile.id}`);
     
     toast({
         title: "Profile Deleted",
@@ -375,7 +387,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     ].filter(group => group.chats.length > 0);
   }, [chats]);
   
-  const speakText = useCallback(async (text: string) => {
+ const speakText = useCallback(async (text: string) => {
     if (isSpeaking) {
       handleStopSpeaking();
       return;
@@ -385,8 +397,9 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     setIsSpeaking(true);
   
     try {
+      // Generate audio for the whole text at once for reliability
       const { audio } = await textToSpeech({ text });
-  
+
       if (stopSpeakingRef.current) {
         setIsSpeaking(false);
         return;
@@ -405,6 +418,11 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
             setIsSpeaking(false);
         });
       } else {
+         toast({
+            variant: "destructive",
+            title: "Speech Error",
+            description: "Could not generate audio. Please try again.",
+         });
         setIsSpeaking(false);
       }
     } catch (error) {
@@ -746,6 +764,8 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
           setTherapyStyle={setTherapyStyle}
           isSettingsOpen={isSettingsOpen}
           setIsSettingsOpen={setIsSettingsOpen}
+          activePersona={activePersona}
+          setActivePersona={setActivePersona}
         />
         <EditProfileDialog 
             isOpen={isEditProfileOpen}
@@ -812,8 +832,12 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
           <header className="flex items-center justify-between p-4 border-b shrink-0">
             <div className="flex items-center gap-2">
                 <SidebarTrigger tooltip="Toggle chat history" />
-                <BrainLogo className="w-7 h-7"/>
-                <h2 className="text-lg font-semibold">CounselAI</h2>
+                 {activePersona.name === 'Custom' ? (
+                  <BrainLogo className="w-8 h-8"/>
+                 ) : (
+                  <Image src={activePersona.mascot} alt={`${activePersona.name} mascot`} width={32} height={32} className="rounded-full" data-ai-hint={activePersona.mascotHint} />
+                 )}
+                <h2 className="text-lg font-semibold">{activePersona.name}</h2>
             </div>
              <div className="flex items-center gap-1">
                 <ThemeToggle />
@@ -967,5 +991,3 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     </>
   );
 }
-
-    
