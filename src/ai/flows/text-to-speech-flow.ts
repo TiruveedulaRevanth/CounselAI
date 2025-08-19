@@ -9,8 +9,9 @@
  */
 
 import { ai } from '@/ai/genkit';
+import { googleAI } from '@genkit-ai/googleai';
 import { z } from 'zod';
-import { HfInference } from '@huggingface/inference';
+import wav from 'wav';
 
 const TextToSpeechInputSchema = z.object({
   text: z.string().describe('The text to be converted to speech.'),
@@ -27,12 +28,6 @@ export async function textToSpeech(input: TextToSpeechInput): Promise<TextToSpee
   return textToSpeechFlow(input);
 }
 
-if (!process.env.HF_TOKEN) {
-  console.warn("HF_TOKEN environment variable not set. Text-to-speech will not function.");
-}
-
-const hf = new HfInference(process.env.HF_TOKEN);
-
 const textToSpeechFlow = ai.defineFlow(
   {
     name: 'textToSpeechFlow',
@@ -40,31 +35,64 @@ const textToSpeechFlow = ai.defineFlow(
     outputSchema: TextToSpeechOutputSchema,
   },
   async ({ text }) => {
-    if (!process.env.HF_TOKEN) {
-      console.error("Cannot call Hugging Face API: HF_TOKEN is not configured.");
-      return { audio: undefined };
-    }
     try {
-        const audioBlob = await hf.textToSpeech({
-            model: 'ResembleAI/chatterbox',
-            inputs: text,
-        });
+      const { media } = await ai.generate({
+        model: googleAI.model('gemini-2.5-flash-preview-tts'),
+        config: {
+          responseModalities: ['AUDIO'],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: 'Algenib' },
+            },
+          },
+        },
+        prompt: text,
+      });
 
-        if (audioBlob) {
-             const buffer = await audioBlob.arrayBuffer();
-             const base64Audio = Buffer.from(buffer).toString('base64');
-             return {
-                audio: `data:audio/wav;base64,${base64Audio}`,
-            };
-        } else {
-            console.error('No audio data was returned from the TTS model. The response was empty.');
-            return { audio: undefined };
-        }
+      if (!media) {
+        console.error('No audio data was returned from the TTS model.');
+        return { audio: undefined };
+      }
+
+      const audioBuffer = Buffer.from(
+        media.url.substring(media.url.indexOf(',') + 1),
+        'base64'
+      );
+
+      const base64Wav = await toWav(audioBuffer);
+
+      return {
+          audio: `data:audio/wav;base64,${base64Wav}`,
+      };
+      
     } catch(error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error("Error in textToSpeechFlow (Hugging Face API):", errorMessage);
+        console.error("Error in textToSpeechFlow (Gemini API):", errorMessage);
         // Return an empty audio object so the client can handle it gracefully
         return { audio: undefined };
     }
   }
 );
+
+
+async function toWav(
+  pcmData: Buffer,
+  channels = 1,
+  rate = 24000,
+  sampleWidth = 2
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const writer = new wav.Writer({
+      channels,
+      sampleRate: rate,
+      bitDepth: sampleWidth * 8,
+    });
+
+    const bufs: Buffer[] = [];
+    writer.on('error', reject);
+    writer.on('data', (d) => bufs.push(d));
+    writer.on('end', () => resolve(Buffer.concat(bufs).toString('base64')));
+    writer.write(pcmData);
+    writer.end();
+  });
+}
