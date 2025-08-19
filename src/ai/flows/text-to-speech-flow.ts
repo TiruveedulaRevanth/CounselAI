@@ -27,6 +27,10 @@ export async function textToSpeech(input: TextToSpeechInput): Promise<TextToSpee
   return textToSpeechFlow(input);
 }
 
+if (!process.env.HF_TOKEN) {
+  console.warn("HF_TOKEN environment variable not set. Text-to-speech will not function.");
+}
+
 const hf = new HfInference(process.env.HF_TOKEN);
 
 const textToSpeechFlow = ai.defineFlow(
@@ -36,6 +40,10 @@ const textToSpeechFlow = ai.defineFlow(
     outputSchema: TextToSpeechOutputSchema,
   },
   async ({ text }) => {
+    if (!process.env.HF_TOKEN) {
+      console.error("Cannot call Hugging Face API: HF_TOKEN is not configured.");
+      return { audio: undefined };
+    }
     try {
         const audioBlob = await hf.textToSpeech({
             model: 'ResembleAI/chatterbox',
@@ -49,11 +57,12 @@ const textToSpeechFlow = ai.defineFlow(
                 audio: `data:audio/wav;base64,${base64Audio}`,
             };
         } else {
-            console.error('No audio data was returned from the TTS model.');
+            console.error('No audio data was returned from the TTS model. The response was empty.');
             return { audio: undefined };
         }
     } catch(error) {
-        console.error("Error in textToSpeechFlow (Hugging Face API):", error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error("Error in textToSpeechFlow (Hugging Face API):", errorMessage);
         // Return an empty audio object so the client can handle it gracefully
         return { audio: undefined };
     }
