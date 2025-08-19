@@ -10,7 +10,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { InferenceClient } from '@huggingface/inference';
+import { HfInference } from '@huggingface/inference';
 
 const TextToSpeechInputSchema = z.object({
   text: z.string().describe('The text to be converted to speech.'),
@@ -27,7 +27,7 @@ export async function textToSpeech(input: TextToSpeechInput): Promise<TextToSpee
   return textToSpeechFlow(input);
 }
 
-const hf = new InferenceClient(process.env.HF_TOKEN);
+const hf = new HfInference(process.env.HF_TOKEN);
 
 const textToSpeechFlow = ai.defineFlow(
   {
@@ -40,7 +40,6 @@ const textToSpeechFlow = ai.defineFlow(
         const audioBlob = await hf.textToSpeech({
             model: 'ResembleAI/chatterbox',
             inputs: text,
-            provider: 'fal-ai',
         });
 
         if (audioBlob) {
