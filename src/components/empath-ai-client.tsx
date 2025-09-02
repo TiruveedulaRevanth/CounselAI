@@ -182,6 +182,16 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
   const stopSpeakingRef = useRef<boolean>(false);
   const userName = currentProfile.name;
   
+  const helplineUrls: { [key: string]: string } = {
+    IN: 'https://www.aasra.info/helpline.html',
+    US: 'https://988lifeline.org/',
+    GB: 'https://www.samaritans.org/',
+    ES: 'https://telefonodelaesperanza.org/',
+    FR: 'https://www.sos-amitie.com/',
+    CN: 'https://www.lifelinechina.org/',
+    DEFAULT: 'https://www.befrienders.org/',
+  };
+
   useEffect(() => {
     setCurrentProfile(activeProfile);
     // When profile changes, load their chats
@@ -609,7 +619,8 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
 
         // Check for crisis redirection
         if (aiResult.needsHelp) {
-            window.location.href = 'https://www.befrienders.org/';
+            const regionUrl = helplineUrls[currentProfile.region] || helplineUrls.DEFAULT;
+            window.location.href = regionUrl;
             return; // Stop further processing
         }
         
