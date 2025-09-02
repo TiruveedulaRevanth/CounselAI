@@ -25,20 +25,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { BrainLogo } from "./brain-logo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
-import { User, Trash2 } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-
 
 export type Profile = {
   id: string;
@@ -100,202 +86,185 @@ const createSignUpSchema = (existingProfiles: Profile[]) => z.object({
 export default function AuthPage({ onSignInSuccess, existingProfiles, setProfiles }: AuthPageProps) {
   const { toast } = useToast();
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
-  const [isLoading, setIsLoading] = useState(true);
   
-  const signUpSchema = createSignUpSchema(existingProfiles);
-
   useEffect(() => {
     if (existingProfiles.length === 0) {
         setAuthMode("signup");
     } else {
         setAuthMode("login");
     }
-    setIsLoading(false);
   }, [existingProfiles]);
 
-  const loginForm = useForm<z.infer<typeof loginSchema>>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { phone: "" },
-  });
 
-  const signUpForm = useForm<z.infer<typeof signUpSchema>>({
-    resolver: zodResolver(signUpSchema),
-    defaultValues: { name: "", region: "IN", phone: "" },
-  });
+  const LoginForm = () => {
+    const loginForm = useForm<z.infer<typeof loginSchema>>({
+        resolver: zodResolver(loginSchema),
+        defaultValues: { phone: "" },
+      });
 
-  const handleLoginSubmit = (values: z.infer<typeof loginSchema>) => {
-    const profile = existingProfiles.find(p => p.phone === values.phone);
-    if (profile) {
-        toast({
-            title: "Login Successful",
-            description: `Welcome back, ${profile.name}!`,
-            duration: 3000,
-        });
-        onSignInSuccess(profile);
-    } else {
-        loginForm.setError("phone", {
-            type: "manual",
-            message: "This phone number is not registered. Please sign up.",
-        });
-    }
-  };
-  
-  const handleSignUp = (values: z.infer<typeof signUpSchema>) => {
-    const newProfile: Profile = {
-        id: `profile-${Date.now()}`,
-        name: values.name,
-        region: values.region,
-        phone: values.phone,
+    const handleLoginSubmit = (values: z.infer<typeof loginSchema>) => {
+        const profile = existingProfiles.find(p => p.phone === values.phone);
+        if (profile) {
+            toast({
+                title: "Login Successful",
+                description: `Welcome back, ${profile.name}!`,
+                duration: 3000,
+            });
+            onSignInSuccess(profile);
+        } else {
+            loginForm.setError("phone", {
+                type: "manual",
+                message: "This phone number is not registered. Please sign up.",
+            });
+        }
     };
-    toast({
-        title: "Sign Up Successful",
-        description: "You can now start using CounselAI.",
-        duration: 3000,
-    });
-    const updatedProfiles = [...existingProfiles, newProfile];
-    setProfiles(updatedProfiles);
-    onSignInSuccess(newProfile);
-  };
-  
-  const renderLogin = () => (
-    <div className="w-full max-w-sm">
-        <Card>
-            <CardHeader className="text-center">
-                <BrainLogo className="w-20 h-20 mx-auto mb-4"/>
-                <CardTitle className="text-3xl font-bold">Welcome back</CardTitle>
-                <CardDescription>Enter your phone number to sign in.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Form {...loginForm}>
-                    <form onSubmit={loginForm.handleSubmit(handleLoginSubmit)} className="space-y-4">
-                        <FormField
-                            control={loginForm.control}
-                            name="phone"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormControl>
-                                        <Input placeholder="Enter phone number" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <Button type="submit" className="w-full font-bold">
-                            Continue
-                        </Button>
-                    </form>
-                </Form>
-            </CardContent>
-        </Card>
-        <div className="mt-4 text-center text-sm">
-            <p>Don't have an account?{' '}
-                <Button variant="link" className="p-0 h-auto" onClick={() => setAuthMode("signup")}>
-                    Sign Up
-                </Button>
-            </p>
-        </div>
-    </div>
-  );
-
-  const renderSignUp = () => (
-    <div className="w-full max-w-sm">
-        <Card>
-            <CardHeader className="text-center">
-                <BrainLogo className="w-20 h-20 mx-auto mb-4"/>
-                <CardTitle className="text-3xl font-bold">Create an Account</CardTitle>
-                <CardDescription>Sign up to start your journey with CounselAI.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Form {...signUpForm}>
-                    <form onSubmit={signUpForm.handleSubmit(handleSignUp)} className="space-y-4">
-                        <FormField
-                            control={signUpForm.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Name</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Full Name" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={signUpForm.control}
-                            name="region"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Region</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                        <SelectValue placeholder="Select your region" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {regions.map(r => <SelectItem key={r.code} value={r.code}>{r.name}</SelectItem>)}
-                                    </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={signUpForm.control}
-                            name="phone"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Phone Number</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Phone number" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <Button type="submit" className="w-full font-bold">
-                            Sign Up
-                        </Button>
-                    </form>
-                </Form>
-            </CardContent>
-        </Card>
-        {existingProfiles.length > 0 && (
-             <div className="mt-4 text-center text-sm">
-                <p>Have an account?{' '}
-                    <Button variant="link" className="p-0 h-auto" onClick={() => { setAuthMode("login"); }}>
-                        Log in
+    
+    return (
+        <div className="w-full max-w-sm">
+            <Card>
+                <CardHeader className="text-center">
+                    <BrainLogo className="w-20 h-20 mx-auto mb-4"/>
+                    <CardTitle className="text-3xl font-bold">Welcome back</CardTitle>
+                    <CardDescription>Enter your phone number to sign in.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Form {...loginForm}>
+                        <form onSubmit={loginForm.handleSubmit(handleLoginSubmit)} className="space-y-4">
+                            <FormField
+                                control={loginForm.control}
+                                name="phone"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormControl>
+                                            <Input placeholder="Enter phone number" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <Button type="submit" className="w-full font-bold">
+                                Continue
+                            </Button>
+                        </form>
+                    </Form>
+                </CardContent>
+            </Card>
+            <div className="mt-4 text-center text-sm">
+                <p>Don't have an account?{' '}
+                    <Button variant="link" className="p-0 h-auto" onClick={() => setAuthMode("signup")}>
+                        Sign Up
                     </Button>
                 </p>
             </div>
-        )}
-    </div>
-  )
-
-  const getAuthContent = () => {
-    if (isLoading) {
-        return (
-             <div className="flex items-center justify-center min-h-[400px]">
-                <p className="text-muted-foreground">Loading...</p>
-             </div>
-        );
-    }
-    switch (authMode) {
-        case "login":
-            return renderLogin();
-        case "signup":
-            return renderSignUp();
-        default:
-            return renderSignUp();
-    }
+        </div>
+      )
   }
+
+  const SignUpForm = () => {
+    const signUpSchema = createSignUpSchema(existingProfiles);
+    const signUpForm = useForm<z.infer<typeof signUpSchema>>({
+        resolver: zodResolver(signUpSchema),
+        defaultValues: { name: "", region: "IN", phone: "" },
+    });
+
+    const handleSignUp = (values: z.infer<typeof signUpSchema>) => {
+        const newProfile: Profile = {
+            id: `profile-${Date.now()}`,
+            name: values.name,
+            region: values.region,
+            phone: values.phone,
+        };
+        toast({
+            title: "Sign Up Successful",
+            description: "You can now start using CounselAI.",
+            duration: 3000,
+        });
+        const updatedProfiles = [...existingProfiles, newProfile];
+        setProfiles(updatedProfiles);
+        onSignInSuccess(newProfile);
+    };
+
+    return (
+        <div className="w-full max-w-sm">
+            <Card>
+                <CardHeader className="text-center">
+                    <BrainLogo className="w-20 h-20 mx-auto mb-4"/>
+                    <CardTitle className="text-3xl font-bold">Create an Account</CardTitle>
+                    <CardDescription>Sign up to start your journey with CounselAI.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Form {...signUpForm}>
+                        <form onSubmit={signUpForm.handleSubmit(handleSignUp)} className="space-y-4">
+                            <FormField
+                                control={signUpForm.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Name</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Full Name" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={signUpForm.control}
+                                name="region"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Region</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                            <SelectValue placeholder="Select your region" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {regions.map(r => <SelectItem key={r.code} value={r.code}>{r.name}</SelectItem>)}
+                                        </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={signUpForm.control}
+                                name="phone"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Phone Number</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Phone number" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <Button type="submit" className="w-full font-bold">
+                                Sign Up
+                            </Button>
+                        </form>
+                    </Form>
+                </CardContent>
+            </Card>
+            {existingProfiles.length > 0 && (
+                 <div className="mt-4 text-center text-sm">
+                    <p>Have an account?{' '}
+                        <Button variant="link" className="p-0 h-auto" onClick={() => { setAuthMode("login"); }}>
+                            Log in
+                        </Button>
+                    </p>
+                </div>
+            )}
+        </div>
+    )
+  }
+
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4 font-sans">
-        <div className="flex flex-col items-center w-full max-w-sm">
-         {getAuthContent()}
-        </div>
+        {authMode === 'login' ? <LoginForm /> : <SignUpForm />}
     </div>
   );
 }
