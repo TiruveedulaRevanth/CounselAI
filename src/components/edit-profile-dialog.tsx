@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/form";
 import type { Profile } from "./auth-page";
 import { useEffect } from "react";
+import { Separator } from "./ui/separator";
 
 interface EditProfileDialogProps {
   isOpen: boolean;
@@ -34,6 +35,8 @@ interface EditProfileDialogProps {
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters long."),
+  emergencyContactName: z.string().min(2, "Emergency contact name must be at least 2 characters"),
+  emergencyContactPhone: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Please enter a valid phone number."),
 });
 
 export default function EditProfileDialog({
@@ -46,18 +49,24 @@ export default function EditProfileDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: profile.name,
+      emergencyContactName: profile.emergencyContactName || "",
+      emergencyContactPhone: profile.emergencyContactPhone || "",
     },
   });
 
   // Reset form when profile changes or dialog opens
   useEffect(() => {
     if (isOpen) {
-      form.reset({ name: profile.name });
+      form.reset({
+          name: profile.name,
+          emergencyContactName: profile.emergencyContactName || "",
+          emergencyContactPhone: profile.emergencyContactPhone || ""
+      });
     }
   }, [isOpen, profile, form]);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    onProfileUpdate({ ...profile, name: values.name });
+    onProfileUpdate({ ...profile, ...values });
     onOpenChange(false);
   };
 
@@ -71,8 +80,8 @@ export default function EditProfileDialog({
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                 <FormField
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
                     control={form.control}
                     name="name"
                     render={({ field }) => (
@@ -80,6 +89,37 @@ export default function EditProfileDialog({
                             <FormLabel>Name</FormLabel>
                             <FormControl>
                                 <Input placeholder="Your name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <Separator />
+                 <div className="space-y-2">
+                    <FormLabel className="font-semibold">Emergency Contact</FormLabel>
+                    <p className="text-xs text-muted-foreground">This person will be contacted if the AI detects a crisis.</p>
+                 </div>
+                 <FormField
+                    control={form.control}
+                    name="emergencyContactName"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Contact's Full Name</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Emergency contact name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="emergencyContactPhone"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Contact's Phone Number</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Emergency contact phone" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -94,3 +134,5 @@ export default function EditProfileDialog({
     </Dialog>
   );
 }
+
+    

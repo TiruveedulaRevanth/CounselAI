@@ -5,6 +5,7 @@ import { personalizeTherapyStyle } from "@/ai/flows/therapy-style-personalizatio
 import { summarizeChat } from "@/ai/flows/summarize-chat-flow";
 import { textToSpeech } from "@/ai/flows/text-to-speech-flow";
 import { suggestResource } from "@/ai/flows/suggest-resource-flow";
+import { sendSms } from "@/ai/flows/send-sms-flow";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { LogOut, Mic, Send, Settings, Trash2, MoreHorizontal, MessageSquarePlus, Square, Library, Sparkles, Siren, Edit, Archive, ArchiveX, FilePenLine } from "lucide-react";
@@ -266,7 +267,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     }
     toast({
         title: "Profile Updated",
-        description: "Your name has been successfully updated.",
+        description: "Your profile has been successfully updated.",
     });
   };
 
@@ -619,6 +620,20 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
 
         // Check for crisis redirection
         if (aiResult.needsHelp) {
+            // Send SMS to emergency contact
+            if (currentProfile.emergencyContactPhone) {
+                await sendSms({
+                    userName: currentProfile.name,
+                    emergencyContactPhone: currentProfile.emergencyContactPhone
+                });
+                toast({
+                    title: "Emergency Contact Alerted",
+                    description: "A message has been sent to your emergency contact.",
+                    duration: 5000,
+                });
+            }
+
+            // Redirect to helpline
             const regionUrl = helplineUrls[currentProfile.region] || helplineUrls.DEFAULT;
             window.location.href = regionUrl;
             return; // Stop further processing
@@ -1026,3 +1041,5 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     </>
   );
 }
+
+    

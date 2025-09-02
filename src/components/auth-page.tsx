@@ -25,12 +25,15 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { BrainLogo } from "./brain-logo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Separator } from "./ui/separator";
 
 export type Profile = {
   id: string;
   name: string;
   region: string;
   phone: string;
+  emergencyContactName: string;
+  emergencyContactPhone: string;
 }
 
 interface AuthPageProps {
@@ -67,17 +70,28 @@ const createSignUpSchema = (existingProfiles: Profile[]) => z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   region: z.enum(["IN", "US", "GB", "ES", "FR", "CN"]),
   phone: z.string(),
+  emergencyContactName: z.string().min(2, "Emergency contact name must be at least 2 characters"),
+  emergencyContactPhone: z.string().min(1, "Emergency contact phone number is required"),
 }).refine(data => !existingProfiles.some(p => p.phone === data.phone), {
     message: "This phone number is already registered.",
     path: ["phone"],
 }).superRefine((data, ctx) => {
     const phoneSchema = phoneValidationSchemas[data.region];
-    const result = phoneSchema.safeParse(data.phone);
-    if (!result.success) {
+    const userPhoneResult = phoneSchema.safeParse(data.phone);
+    if (!userPhoneResult.success) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: result.error.errors[0].message,
+            message: userPhoneResult.error.errors[0].message,
             path: ["phone"],
+        });
+    }
+    // Simple validation for emergency contact phone, can be improved
+    const emergencyPhoneResult = z.string().regex(/^\+?[1-9]\d{1,14}$/, "Please enter a valid phone number.").safeParse(data.emergencyContactPhone);
+    if (!emergencyPhoneResult.success) {
+         ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: emergencyPhoneResult.error.errors[0].message,
+            path: ["emergencyContactPhone"],
         });
     }
 });
@@ -164,7 +178,7 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
     const signUpSchema = createSignUpSchema(existingProfiles);
     const signUpForm = useForm<z.infer<typeof signUpSchema>>({
         resolver: zodResolver(signUpSchema),
-        defaultValues: { name: "", region: "IN", phone: "" },
+        defaultValues: { name: "", region: "IN", phone: "", emergencyContactName: "", emergencyContactPhone: "" },
     });
 
     const handleSignUp = (values: z.infer<typeof signUpSchema>) => {
@@ -173,6 +187,8 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
             name: values.name,
             region: values.region,
             phone: values.phone,
+            emergencyContactName: values.emergencyContactName,
+            emergencyContactPhone: values.emergencyContactPhone,
         };
         toast({
             title: "Sign Up Successful",
@@ -241,6 +257,37 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
                                     </FormItem>
                                 )}
                             />
+                            <Separator className="my-6" />
+                             <div className="space-y-2 text-center">
+                                <FormLabel className="font-semibold">Emergency Contact</FormLabel>
+                                <p className="text-xs text-muted-foreground">This person will be contacted if the AI detects a crisis.</p>
+                             </div>
+                             <FormField
+                                control={signUpForm.control}
+                                name="emergencyContactName"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Contact's Full Name</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Emergency contact name" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={signUpForm.control}
+                                name="emergencyContactPhone"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Contact's Phone Number</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Emergency contact phone" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                             <Button type="submit" className="w-full font-bold">
                                 Sign Up
                             </Button>
@@ -268,3 +315,5 @@ export default function AuthPage({ onSignInSuccess, existingProfiles, setProfile
     </div>
   );
 }
+
+    
