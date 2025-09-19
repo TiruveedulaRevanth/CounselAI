@@ -10,7 +10,7 @@ export type Message = z.infer<typeof MessageSchema>;
 export const UserContextSchema = z.object({
   personality: z.string().describe("A summary of the user's core personality traits observed over all conversations."),
   strengths: z.string().describe("A summary of the user's recurring strengths and positive attributes."),
-  struggles: z.string().describe("A summary of the user's main, long-term challenges and struggles."),
+  problems: z.string().describe("A summary of the user's main, long-term challenges, mental health problems, and real-world issues."),
 });
 export type UserContext = z.infer<typeof UserContextSchema>;
 

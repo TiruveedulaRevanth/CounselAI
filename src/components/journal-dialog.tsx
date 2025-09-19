@@ -55,7 +55,7 @@ export default function JournalDialog({
                     <h2 className="text-lg font-semibold text-primary">Long-Term Context</h2>
                     <JournalSection title="Personality" content={userContext?.personality} />
                     <JournalSection title="Strengths" content={userContext?.strengths} />
-                    <JournalSection title="Core Struggles" content={userContext?.struggles} />
+                    <JournalSection title="Core Problems" content={userContext?.problems} />
                     
                     <h2 className="text-lg font-semibold text-primary pt-4 mt-4 border-t">Current Chat</h2>
                     <JournalSection title="Suggested Solutions" content={chatJournal?.suggestedSolutions} />

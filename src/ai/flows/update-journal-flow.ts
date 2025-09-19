@@ -36,9 +36,9 @@ const prompt = ai.definePrompt({
 You MUST follow these rules:
 1.  **Synthesize, Don't Replace:** Read the 'currentUserContext' and 'currentChatJournal'. Integrate new insights from the 'history' into the existing journal fields. Do not simply discard old information. The goal is to evolve the journals, not rewrite them from scratch.
 2.  **Differentiate Context:**
-    *   The **User Context** is for long-term, stable traits. Only update 'personality', 'strengths', and 'struggles' if new, significant, and recurring themes emerge. These should change slowly over time.
+    *   The **User Context** is for long-term, stable traits. Only update 'personality', 'strengths', and 'problems' if new, significant, and recurring themes emerge. These should change slowly over time.
     *   The **Chat Journal** is for this specific conversation. Update 'suggestedSolutions' and 'progressSummary' based only on the recent messages in this chat. This journal should be dynamic.
-3.  **Be Objective and Empathetic:** Use neutral, observational language. Frame the user's traits and struggles constructively.
+3.  **Be Objective and Empathetic:** Use neutral, observational language. Frame the user's traits and problems constructively.
 4.  **Identify Core Themes:** Distill the conversation into key themes for each section.
 
 **Journal Sections to Update:**
@@ -46,7 +46,7 @@ You MUST follow these rules:
 *   **User Context (Long-Term):**
     *   'personality': Based on the user's language, tone, and expressed thoughts across all conversations, describe their core personality traits. Are they analytical, anxious, resilient, self-critical?
     *   'strengths': Identify the user's recurring strengths and positive attributes. This could be self-awareness, determination, kindness, etc.
-    *   'struggles': What are the main, persistent challenges or issues the user is facing across multiple conversations? Be specific (e.g., "Struggling with social anxiety," "Deals with Impostor Syndrome").
+    *   'problems': What are the main, persistent challenges, mental problems, or real-world issues the user is facing across multiple conversations? Be specific (e.g., "Struggling with social anxiety," "Deals with Impostor Syndrome").
 *   **Chat Journal (This Conversation Only):**
     *   'suggestedSolutions': What are the potential therapeutic avenues or coping strategies that have been discussed *in this specific chat*? (e.g., "Practiced a 5-4-3-2-1 grounding exercise," "Discussed reframing negative thoughts about the exam").
     *   'progressSummary': Based only on the recent history of this chat, assess their change. Are they applying advice from this session? Is their mood improving or worsening *in this conversation*?`,
@@ -54,7 +54,7 @@ You MUST follow these rules:
 {{#if currentUserContext}}
   Personality: {{{currentUserContext.personality}}}
   Strengths: {{{currentUserContext.strengths}}}
-  Struggles: {{{currentUserContext.struggles}}}
+  Problems: {{{currentUserContext.problems}}}
 {{else}}
   This is a new user.
 {{/if}}
@@ -96,7 +96,7 @@ const updateJournalFlow = ai.defineFlow(
         userContext: input.currentUserContext || {
             personality: "",
             strengths: "",
-            struggles: "",
+            problems: "",
         },
         chatJournal: input.currentChatJournal || {
             suggestedSolutions: "",

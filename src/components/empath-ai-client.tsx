@@ -142,7 +142,7 @@ interface EmpathAIClientProps {
 const initialUserContext: UserContext = {
     personality: "Not yet analyzed.",
     strengths: "Not yet analyzed.",
-    struggles: "Not yet analyzed.",
+    problems: "Not yet analyzed.",
 };
 
 const initialChatJournal: ChatJournal = {
@@ -631,6 +631,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     try {
         // This is a reference to the latest user context state, to prevent stale closures.
         const currentUserContext = userContext;
+        const currentChatJournal = currentChat.journal;
 
         // Start all AI calls in parallel
         const summarizePromise = isFirstMessage 
@@ -650,7 +651,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
 
         // Trigger journal update in the background, but don't wait for it
         if (historyForAI.length > 0 && historyForAI.length % 3 === 0) { // Update journal every 3 messages
-            updateJournal({ currentUserContext: currentUserContext, currentChatJournal: currentChat.journal, history: historyForAI })
+            updateJournal({ currentUserContext, currentChatJournal, history: historyForAI })
                 .then(newJournals => {
                     setUserContext(newJournals.userContext);
                     // Find the chat and update its journal
@@ -1092,5 +1093,3 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     </>
   );
 }
-
-    
