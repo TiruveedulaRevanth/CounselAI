@@ -912,12 +912,6 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
                         <span>Resources</span>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
-                 <SidebarMenuItem>
-                    <SidebarMenuButton onClick={() => setIsJournalOpen(true)}>
-                        <BookText />
-                        <span>Journal</span>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
             </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
@@ -931,6 +925,12 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
             </div>
              <div className="flex items-center gap-1">
                 <ThemeToggle />
+                <Tooltip>
+                  <TooltipTrigger asChild={true}>
+                    <Button variant="ghost" size="icon" onClick={() => setIsJournalOpen(true)}><BookText size={20}/></Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Journal</p></TooltipContent>
+                </Tooltip>
                 
                 <DropdownMenu>
                     <Tooltip>
