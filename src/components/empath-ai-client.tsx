@@ -651,7 +651,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
 
         // Trigger journal update in the background, but don't wait for it
         if (historyForAI.length > 0 && historyForAI.length % 3 === 0) { // Update journal every 3 messages
-            updateJournal({ currentUserContext, currentChatJournal, history: historyForAI })
+            updateJournal({ currentUserContext: userContext, currentChatJournal, history: historyForAI })
                 .then(newJournals => {
                     setUserContext(newJournals.userContext);
                     // Find the chat and update its journal
@@ -1093,3 +1093,5 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     </>
   );
 }
+
+    
