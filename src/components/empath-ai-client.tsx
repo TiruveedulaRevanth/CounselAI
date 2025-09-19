@@ -50,7 +50,6 @@ import { ThemeToggle } from "./theme-toggle";
 import { isToday, isYesterday, isWithinInterval, subDays } from "date-fns";
 import EmergencyResourcesDialog from "./emergency-resources-dialog";
 import ResourcesLibrary from "./resources-library";
-import MindfulToolkitDialog from "./mindful-toolkit-dialog";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "./ui/tooltip";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { User } from "lucide-react";
@@ -146,7 +145,6 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
-  const [isToolkitOpen, setIsToolkitOpen] = useState(false);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [isDeleteProfileOpen, setIsDeleteProfileOpen] = useState(false);
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
@@ -829,7 +827,6 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         />
         <EmergencyResourcesDialog isOpen={isEmergencyOpen} onOpenChange={setIsEmergencyOpen} />
         <ResourcesLibrary isOpen={isLibraryOpen} onOpenChange={setIsLibraryOpen} />
-        <MindfulToolkitDialog isOpen={isToolkitOpen} onOpenChange={setIsToolkitOpen} />
 
       <Sidebar>
         <SidebarHeader>
@@ -891,12 +888,6 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
             </div>
              <div className="flex items-center gap-1">
                 <ThemeToggle />
-                <Tooltip>
-                  <TooltipTrigger asChild={true}>
-                    <Button variant="ghost" size="icon" onClick={() => setIsToolkitOpen(true)}><Sparkles size={20}/></Button>
-                  </TooltipTrigger>
-                  <TooltipContent><p>Mindful Toolkit</p></TooltipContent>
-                </Tooltip>
                 
                 <DropdownMenu>
                     <Tooltip>
