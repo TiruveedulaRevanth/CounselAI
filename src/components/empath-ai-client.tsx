@@ -1123,7 +1123,8 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
                         <TooltipTrigger asChild={true}>
                             <Button variant="ghost" size="icon" onClick={() => handleSend( userInput)} disabled={isLoading || !userInput.trim()}>
                                 <Send className="h-5 w-5"/>
-                            </Button>                        </TooltipTrigger>
+                            </Button>
+                        </TooltipTrigger>
                         <TooltipContent><p>Send Message</p></TooltipContent>
                     </Tooltip>
                 </div>
@@ -1138,3 +1139,5 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     </>
   );
 }
+
+    
