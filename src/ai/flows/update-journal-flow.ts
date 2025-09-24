@@ -62,7 +62,7 @@ Life Domains:
   - Personal Growth: {{currentUserContext.lifeDomains.personalGrowth}}
 Personality Traits: {{currentUserContext.personalityTraits}}
 Recurring Problems / Stressors: {{currentUserContext.recurringProblems}}
-Values / Goals: {{currentUser-context.values}}
+Values / Goals: {{currentUserContext.values}}
 Mood History: {{currentUserContext.moodHistory}}
 
 === CURRENT CHAT JOURNAL (This Session) ===
@@ -85,8 +85,23 @@ const updateJournalFlow = ai.defineFlow(
     outputSchema: UpdateJournalOutputSchema,
   },
   async (input) => {
+    // Add a check for old data format and migrate if necessary
+    const userContextForPrompt = { ...input.currentUserContext };
+    if (!userContextForPrompt.lifeDomains) {
+        userContextForPrompt.lifeDomains = {
+            business: 'Not yet analyzed.',
+            relationships: 'Not yet analyzed.',
+            family: 'Not yet analyzed.',
+            health: 'Not yet analyzed.',
+            finances: 'Not yet analyzed.',
+            personalGrowth: 'Not yet analyzed.',
+        };
+    }
+
+
     try {
-      const { output } = await prompt(input);
+      // Use the potentially migrated context for the prompt
+      const { output } = await prompt({ ...input, currentUserContext: userContextForPrompt });
       if (output) {
         return output;
       }
