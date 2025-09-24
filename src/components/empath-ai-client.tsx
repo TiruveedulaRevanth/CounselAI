@@ -76,13 +76,13 @@ export type Message = {
   content: string;
   resourceId?: string;
   resourceTitle?: string;
-  audio?: string;
+  audio?: string; // This will now be treated as transient session state.
 };
 
 export type Chat = {
   id:string;
   name: string;
-  messages: Message[];
+  messages: Omit<Message, 'audio'>[]; // We will not persist audio.
   createdAt: number;
   journal: ChatJournal;
 };
@@ -168,6 +168,9 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
   
   const [userContext, setUserContext] = useState<UserContext>(initialUserContext);
   const [userJournalEntries, setUserJournalEntries] = useState<UserJournalEntry[]>([]);
+
+  // Transient state for audio data, not persisted.
+  const [sessionAudio, setSessionAudio] = useState<Record<string, string>>({});
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -288,6 +291,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
   // Persist data to local storage whenever they change for the current profile
   useEffect(() => {
     if (!isDataLoading) {
+      try {
         localStorage.setItem(`counselai-chats-${currentProfile.id}`, JSON.stringify(chats));
         localStorage.setItem(`counselai-user-context-${currentProfile.id}`, JSON.stringify(userContext));
         localStorage.setItem(`counselai-user-journal-${currentProfile.id}`, JSON.stringify(userJournalEntries));
@@ -296,8 +300,19 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         if (activePersona.name === 'Custom') {
             localStorage.setItem(`counselai-custom-persona-${currentProfile.id}`, JSON.stringify(customPersona));
         }
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+          toast({
+            variant: 'destructive',
+            title: 'Storage Limit Reached',
+            description: 'Could not save chat history. Your browser storage is full.',
+          });
+        } else {
+          console.error("Failed to save data to local storage:", error);
+        }
+      }
     }
-  }, [chats, userContext, userJournalEntries, therapyStyle, activePersona, customPersona, currentProfile.id, isDataLoading]);
+  }, [chats, userContext, userJournalEntries, therapyStyle, activePersona, customPersona, currentProfile.id, isDataLoading, toast]);
 
 
   const handleSignOut = () => {
@@ -356,7 +371,14 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     const updatedChats = [newChat, ...chats];
     setChats(updatedChats);
     setActiveChatId(newChat.id);
+    setSessionAudio({}); // Clear session audio for new chat
   };
+
+  const handleSwitchChat = (chatId: string) => {
+    setActiveChatId(chatId);
+    setSessionAudio({}); // Clear session audio when switching chats
+  };
+
 
   const handleDeleteChat = (chatId: string) => {
     const updatedChats = chats.filter(c => c.id !== chatId);
@@ -437,6 +459,14 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
   }
 
   const activeChat = useMemo(() => chats.find(chat => chat.id === activeChatId), [chats, activeChatId]);
+  
+  const messagesWithSessionAudio = useMemo(() => {
+    return activeChat?.messages.map(msg => ({
+      ...msg,
+      audio: sessionAudio[msg.id],
+    })) || [];
+  }, [activeChat, sessionAudio]);
+
 
   const groupedChats = useMemo(() => {
     const now = new Date();
@@ -472,19 +502,19 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     ].filter(group => group.chats.length > 0);
   }, [chats]);
   
-  const speakText = useCallback(async (text: string, messageId: string, audioData?: string) => {
+  const speakText = useCallback(async (text: string, messageId: string, emotion?: "Sadness" | "Anxiety" | "Anger" | "Joy" | "Neutral") => {
       if (activeSpeakingMessageId) {
           handleStopSpeaking();
           if (activeSpeakingMessageId === messageId) return;
       }
   
-      if (audioData) {
-          // If audio data is already present, play it
+      if (sessionAudio[messageId]) {
+          // If audio data is already in session state, play it
           setActiveSpeakingMessageId(messageId);
           if (!audioRef.current) {
               audioRef.current = new Audio();
           }
-          audioRef.current.src = audioData;
+          audioRef.current.src = sessionAudio[messageId];
           audioRef.current.onended = () => setActiveSpeakingMessageId(null);
           audioRef.current.play();
       } else {
@@ -492,25 +522,15 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
           setIsAudioLoading(true);
           setActiveSpeakingMessageId(messageId);
           try {
-              const audioResult = await textToSpeech({ text });
+              const audioResult = await textToSpeech({ text, emotion });
               if (audioResult?.audio) {
+                  setSessionAudio(prev => ({ ...prev, [messageId]: audioResult.audio! }));
                   if (!audioRef.current) {
                       audioRef.current = new Audio();
                   }
                   audioRef.current.src = audioResult.audio;
                   audioRef.current.onended = () => setActiveSpeakingMessageId(null);
                   await audioRef.current.play();
-
-                  // Optionally, save the fetched audio to the message
-                  setChats(prevChats => prevChats.map(chat => {
-                      if (chat.id === activeChatId) {
-                          const newMessages = chat.messages.map(msg => 
-                              msg.id === messageId ? { ...msg, audio: audioResult.audio } : msg
-                          );
-                          return { ...chat, messages: newMessages };
-                      }
-                      return chat;
-                  }));
 
               } else {
                   throw new Error("No audio data was returned.");
@@ -527,7 +547,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
               setIsAudioLoading(false);
           }
       }
-  }, [activeSpeakingMessageId, toast, activeChatId]);
+  }, [activeSpeakingMessageId, toast, sessionAudio]);
 
   const handleStopSpeaking = () => {
     if (audioRef.current) {
@@ -643,6 +663,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         currentChat = newChat;
         currentChatId = newChat.id;
         setActiveChatId(newChat.id);
+        setSessionAudio({});
     }
 
     const isFirstMessage = currentChat.messages.length === 0;
@@ -743,30 +764,24 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         
         let finalAssistantMessage: Message | null = null;
         if (aiResult.response) {
-            // Now that we have the text, generate the audio
-            const audioResult = await textToSpeech({ text: aiResult.response, emotion: aiResult.detectedEmotion });
-
             const newAssistantMessage: Message = {
                 id: Date.now().toString() + "-ai",
                 role: "assistant",
                 content: aiResult.response,
                 resourceId: resourceResult?.id,
                 resourceTitle: resourceResult?.title,
-                audio: audioResult.audio,
             };
-            if (!audioResult.audio) {
-              toast({
-                  variant: "destructive",
-                  title: "Audio Error",
-                  description: "No audio data is available for this message.",
-              });
-            }
+            
             finalAssistantMessage = newAssistantMessage;
             finalChats = finalChats.map(chat =>
                 chat.id === currentChatId
                     ? { ...chat, messages: [...chat.messages, newAssistantMessage] }
                     : chat
             );
+
+            // Fetch audio in the background but don't wait for it
+            speakText(aiResult.response, newAssistantMessage.id, aiResult.detectedEmotion);
+
         } else {
             throw new Error("Received an empty response from the AI.");
         }
@@ -906,7 +921,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
   const ChatMenuItem = ({ chat }: { chat: Chat }) => (
     <SidebarMenuItem key={chat.id}>
         <SidebarMenuButton 
-            onClick={() => setActiveChatId(chat.id)}
+            onClick={() => handleSwitchChat(chat.id)}
             isActive={chat.id === activeChatId}
             className="truncate"
         >
@@ -1111,12 +1126,12 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
                            )}
                         </div>
                     )}
-                    {activeChat?.messages.map(message => (
+                    {messagesWithSessionAudio.map(message => (
                       <ChatMessage 
                         key={message.id} 
                         message={message} 
                         userName={userName}
-                        onSpeak={(text) => speakText(text, message.id, message.audio)}
+                        onSpeak={(text) => speakText(text, message.id)}
                         isSpeaking={activeSpeakingMessageId === message.id}
                         isAudioLoading={isAudioLoading && activeSpeakingMessageId === message.id}
                         onStopSpeaking={handleStopSpeaking}
