@@ -105,18 +105,13 @@ const updateJournalFlow = ai.defineFlow(
       if (output) {
         return output;
       }
-      // If AI fails, return the original context to prevent data loss.
-      return {
-          updatedUserContext: input.currentUserContext,
-          updatedChatJournal: input.currentChatJournal,
-      };
     } catch (error) {
        console.error("Error in updateJournalFlow:", error);
-       // On error, return original context to ensure no data is lost.
-       return {
-          updatedUserContext: input.currentUserContext,
-          updatedChatJournal: input.currentChatJournal,
-       };
     }
+    // On any error or empty AI response, return original context to ensure no data is lost.
+    return {
+        updatedUserContext: input.currentUserContext,
+        updatedChatJournal: input.currentChatJournal,
+    };
   }
 );
