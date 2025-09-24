@@ -10,7 +10,6 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod';
 import {
   UpdateJournalInputSchema,
   UpdateJournalOutputSchema
@@ -34,22 +33,31 @@ const prompt = ai.definePrompt({
 You MUST adhere to these rules:
 1.  **Synthesize, Don't Replace:** Your primary goal is to *evolve* the journals, not overwrite them. Integrate new insights from the latest conversation history into the existing journal notes.
 2.  **Differentiate Contexts:**
-    *   **UserContext (Long-Term):** This journal should change slowly. It captures the user's core, enduring traits. Only add new, significant, and recurring themes. Do NOT add fleeting details from a single chat. Focus on personality, recurring strengths, and major, long-term problems.
+    *   **UserContext (Long-Term):** This journal should change slowly. It captures the user's core, enduring traits and life situations. Only add new, significant, and recurring themes. Do NOT add fleeting details from a single chat. Populate all the fields based on the new information: coreThemes, lifeDomains, personalityTraits, recurringProblems, values, and moodHistory.
     *   **ChatJournal (Short-Term):** This journal is specific to the *current* conversation. It should be updated more frequently to reflect the immediate discussion, including solutions suggested and progress made *within this single chat*.
 3.  **Use Objective Language:** Write the journal entries in a neutral, observational third-person tone (e.g., "The user expresses...", "A recurring theme is..."). Avoid using "I" or "You".
 
 **Your Process:**
 1.  Review the full 'history' of the conversation.
 2.  Compare the new information with the 'currentUserContext' and 'currentChatJournal'.
-3.  Generate 'updatedUserContext' by cautiously adding any new, significant, long-term insights. If no new long-term insights are revealed, return the 'currentUserContext' unchanged.
+3.  Generate 'updatedUserContext' by cautiously adding any new, significant, long-term insights to the appropriate categories. If no new long-term insights are revealed, return the 'currentUserContext' fields unchanged, but do not leave them blank.
 4.  Generate 'updatedChatJournal' by summarizing the key solutions and progress points from the recent conversation turn.
 `,
   prompt: `A conversation has just concluded. Here is the full history and the current state of the journals.
 
 === CURRENT USER CONTEXT (Long-Term) ===
-Personality: {{currentUserContext.personality}}
-Strengths: {{currentUserContext.strengths}}
-Problems: {{currentUserContext.problems}}
+Core Themes: {{currentUserContext.coreThemes}}
+Life Domains:
+  - Business: {{currentUserContext.lifeDomains.business}}
+  - Relationships: {{currentUserContext.lifeDomains.relationships}}
+  - Family: {{currentUserContext.lifeDomains.family}}
+  - Health: {{currentUserContext.lifeDomains.health}}
+  - Finances: {{currentUserContext.lifeDomains.finances}}
+  - Personal Growth: {{currentUserContext.lifeDomains.personalGrowth}}
+Personality Traits: {{currentUserContext.personalityTraits}}
+Recurring Problems / Stressors: {{currentUserContext.recurringProblems}}
+Values / Goals: {{currentUserContext.values}}
+Mood History: {{currentUserContext.moodHistory}}
 
 === CURRENT CHAT JOURNAL (This Session) ===
 Suggested Solutions: {{currentChatJournal.suggestedSolutions}}

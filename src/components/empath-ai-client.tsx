@@ -140,9 +140,19 @@ interface EmpathAIClientProps {
 }
 
 const initialUserContext: UserContext = {
-    personality: 'Not yet analyzed.',
-    strengths: 'Not yet analyzed.',
-    problems: 'Not yet analyzed.',
+    coreThemes: 'Not yet analyzed.',
+    lifeDomains: {
+        business: 'Not yet analyzed.',
+        relationships: 'Not yet analyzed.',
+        family: 'Not yet analyzed.',
+        health: 'Not yet analyzed.',
+        finances: 'Not yet analyzed.',
+        personalGrowth: 'Not yet analyzed.',
+    },
+    personalityTraits: 'Not yet analyzed.',
+    recurringProblems: 'Not yet analyzed.',
+    values: 'Not yet analyzed.',
+    moodHistory: 'Not yet analyzed.',
 };
 
 const initialChatJournal: ChatJournal = {
@@ -221,10 +231,9 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         const storedUserContext = localStorage.getItem(`counselai-user-context-${activeProfile.id}`);
         let parsedUserContext = storedUserContext ? JSON.parse(storedUserContext) : initialUserContext;
 
-        // Migration logic
+        // Migration logic for older data formats
         if (parsedUserContext && (parsedUserContext as any).struggles) {
-          parsedUserContext.problems = (parsedUserContext as any).struggles;
-          delete (parsedUserContext as any).struggles;
+          parsedUserContext = initialUserContext; // Reset if old format is detected
           localStorage.setItem(`counselai-user-context-${activeProfile.id}`, JSON.stringify(parsedUserContext));
         }
 
@@ -1114,8 +1123,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
                         <TooltipTrigger asChild={true}>
                             <Button variant="ghost" size="icon" onClick={() => handleSend( userInput)} disabled={isLoading || !userInput.trim()}>
                                 <Send className="h-5 w-5"/>
-                            </Button>
-                        </TooltipTrigger>
+                            </Button>                        </TooltipTrigger>
                         <TooltipContent><p>Send Message</p></TooltipContent>
                     </Tooltip>
                 </div>

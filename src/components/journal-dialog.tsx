@@ -25,12 +25,12 @@ import { Textarea } from './ui/textarea';
 import { ScrollArea } from './ui/scroll-area';
 import {
   UserContextSchema,
-  ChatJournalSchema,
 } from '@/ai/schemas/journal-entry';
 import type { UserContext, ChatJournal, UserJournalEntry } from '@/ai/schemas/journal-entry';
 import { BookText, Edit, Save, X } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { format } from 'date-fns';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 
 interface JournalDialogProps {
   isOpen: boolean;
@@ -141,7 +141,6 @@ const UserContextEditor = ({
 
     const hasChanges = JSON.stringify(watchedValues) !== JSON.stringify(userContext);
 
-
     if (!isEditing) {
         return (
              <ScrollArea className="h-full pr-4">
@@ -149,9 +148,24 @@ const UserContextEditor = ({
                     <Edit className="mr-2 h-4 w-4" /> Edit
                 </Button>
                 <div className="space-y-4">
-                    <ContextSection title="AI's Understanding of Your Personality" content={userContext.personality} />
-                    <ContextSection title="AI's Understanding of Your Strengths" content={userContext.strengths} />
-                    <ContextSection title="AI's Understanding of Your Problems" content={userContext.problems} />
+                    <ContextSection title="Core Themes" content={userContext.coreThemes} />
+                    <Accordion type="single" collapsible className="w-full">
+                        <AccordionItem value="item-1">
+                            <AccordionTrigger>Life Domains</AccordionTrigger>
+                            <AccordionContent className="pl-4 space-y-3">
+                                <ContextSection title="Business" content={userContext.lifeDomains.business} />
+                                <ContextSection title="Relationships" content={userContext.lifeDomains.relationships} />
+                                <ContextSection title="Family" content={userContext.lifeDomains.family} />
+                                <ContextSection title="Health" content={userContext.lifeDomains.health} />
+                                <ContextSection title="Finances" content={userContext.lifeDomains.finances} />
+                                <ContextSection title="Personal Growth" content={userContext.lifeDomains.personalGrowth} />
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
+                    <ContextSection title="Personality Traits" content={userContext.personalityTraits} />
+                    <ContextSection title="Recurring Problems / Stressors" content={userContext.recurringProblems} />
+                    <ContextSection title="Values & Goals" content={userContext.values} />
+                    <ContextSection title="Mood & Milestone History" content={userContext.moodHistory} />
                 </div>
             </ScrollArea>
         )
@@ -162,26 +176,47 @@ const UserContextEditor = ({
             <p className="text-sm text-muted-foreground mb-4">This is the AI's long-term understanding of you. You can edit it to be more accurate.</p>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">
-                    <FormField control={form.control} name="personality" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Personality</FormLabel>
-                            <FormControl><Textarea {...field} rows={5} /></FormControl>
-                             <FormMessage />
-                        </FormItem>
+                    <FormField control={form.control} name="coreThemes" render={({ field }) => (
+                        <FormItem><FormLabel>Core Themes</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl><FormMessage /></FormItem>
                     )} />
-                    <FormField control={form.control} name="strengths" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Strengths</FormLabel>
-                            <FormControl><Textarea {...field} rows={5} /></FormControl>
-                             <FormMessage />
-                        </FormItem>
+                    
+                    <Accordion type="single" collapsible className="w-full border rounded-md px-4">
+                        <AccordionItem value="item-1" className="border-b-0">
+                            <AccordionTrigger>Life Domains</AccordionTrigger>
+                            <AccordionContent className="space-y-4 pt-2">
+                                <FormField control={form.control} name="lifeDomains.business" render={({ field }) => (
+                                    <FormItem><FormLabel>Business</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>
+                                )} />
+                                <FormField control={form.control} name="lifeDomains.relationships" render={({ field }) => (
+                                    <FormItem><FormLabel>Relationships</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>
+                                )} />
+                                <FormField control={form.control} name="lifeDomains.family" render={({ field }) => (
+                                    <FormItem><FormLabel>Family</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>
+                                )} />
+                                <FormField control={form.control} name="lifeDomains.health" render={({ field }) => (
+                                    <FormItem><FormLabel>Health</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>
+                                )} />
+                                <FormField control={form.control} name="lifeDomains.finances" render={({ field }) => (
+                                    <FormItem><FormLabel>Finances</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>
+                                )} />
+                                <FormField control={form.control} name="lifeDomains.personalGrowth" render={({ field }) => (
+                                    <FormItem><FormLabel>Personal Growth</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>
+                                )} />
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
+
+                    <FormField control={form.control} name="personalityTraits" render={({ field }) => (
+                        <FormItem><FormLabel>Personality Traits</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl><FormMessage /></FormItem>
                     )} />
-                    <FormField control={form.control} name="problems" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Problems</FormLabel>
-                            <FormControl><Textarea {...field} rows={5} /></FormControl>
-                             <FormMessage />
-                        </FormItem>
+                    <FormField control={form.control} name="recurringProblems" render={({ field }) => (
+                        <FormItem><FormLabel>Recurring Problems / Stressors</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="values" render={({ field }) => (
+                        <FormItem><FormLabel>Values & Goals</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="moodHistory" render={({ field }) => (
+                        <FormItem><FormLabel>Mood & Milestone History</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <DialogFooter className="pt-4 sticky bottom-0 bg-background py-4">
                         <Button type="button" variant="ghost" onClick={onCancel}><X className="mr-2 h-4 w-4"/>Cancel</Button>
@@ -196,6 +231,6 @@ const UserContextEditor = ({
 const ContextSection = ({ title, content }: { title: string; content: string }) => (
   <div className="space-y-1">
     <h4 className="font-semibold">{title}</h4>
-    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{content}</p>
+    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{content || 'Not yet analyzed.'}</p>
   </div>
 );

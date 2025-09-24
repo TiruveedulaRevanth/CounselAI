@@ -27,7 +27,7 @@ const PersonalizeTherapyStyleInputSchema = z.object({
     ),
   userInput: z.string().describe('The user input or question.'),
   history: z.array(MessageSchema).optional().describe("The user's recent conversation history. The last message is the user's current input."),
-  userContext: UserContextSchema.describe("A long-term summary of the user's core personality, strengths, and problems."),
+  userContext: UserContextSchema.describe("A long-term summary of the user's context."),
   chatJournal: ChatJournalSchema.describe("A summary of the user's progress and suggested solutions specific to the current conversation.")
 });
 export type PersonalizeTherapyStyleInput = z.infer<
@@ -79,9 +79,18 @@ Before generating any response, you MUST review the user's long-term 'UserContex
 Therapy Style: {{{therapyStyle}}}
 
 === LONG-TERM USER CONTEXT ===
-Personality: {{userContext.personality}}
-Strengths: {{userContext.strengths}}
-Problems: {{userContext.problems}}
+Core Themes: {{userContext.coreThemes}}
+Life Domains:
+  - Business: {{userContext.lifeDomains.business}}
+  - Relationships: {{userContext.lifeDomains.relationships}}
+  - Family: {{userContext.lifeDomains.family}}
+  - Health: {{userContext.lifeDomains.health}}
+  - Finances: {{userContext.lifeDomains.finances}}
+  - Personal Growth: {{userContext.lifeDomains.personalGrowth}}
+Personality Traits: {{userContext.personalityTraits}}
+Recurring Problems: {{userContext.recurringProblems}}
+Values / Goals: {{userContext.values}}
+Mood History: {{userContext.moodHistory}}
 
 === CURRENT CHAT JOURNAL ===
 Suggested Solutions: {{chatJournal.suggestedSolutions}}

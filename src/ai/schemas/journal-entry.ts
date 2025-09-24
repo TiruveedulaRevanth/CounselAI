@@ -1,10 +1,22 @@
 
 import { z } from 'zod';
 
+const LifeDomainsSchema = z.object({
+  business: z.string().describe("Notes on the user's business and career life."),
+  relationships: z.string().describe("Notes on the user's romantic and social relationships."),
+  family: z.string().describe("Notes on the user's family life."),
+  health: z.string().describe("Notes on the user's physical and mental health."),
+  finances: z.string().describe("Notes on the user's financial situation."),
+  personalGrowth: z.string().describe("Notes on the user's personal growth journey."),
+});
+
 export const UserContextSchema = z.object({
-  personality: z.string().describe("A summary of the user's core personality traits observed over all conversations."),
-  strengths: z.string().describe("A summary of the user's recurring strengths and positive attributes."),
-  problems: z.string().describe("A summary of the user's main, long-term challenges, mental health problems, and real-world issues."),
+  coreThemes: z.string().describe("High-level summary of the core themes in the user's life."),
+  lifeDomains: LifeDomainsSchema.describe("Detailed notes on specific areas of the user's life."),
+  personalityTraits: z.string().describe("A summary of the user's core personality traits observed over all conversations."),
+  recurringProblems: z.string().describe("A summary of the user's main, long-term challenges and recurring stressors."),
+  values: z.string().describe("A summary of the user's core values and life goals."),
+  moodHistory: z.string().describe("A summary of the user's mood patterns and significant milestones over time."),
 });
 export type UserContext = z.infer<typeof UserContextSchema>;
 
