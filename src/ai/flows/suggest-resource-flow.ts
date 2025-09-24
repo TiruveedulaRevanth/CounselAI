@@ -477,13 +477,17 @@ const suggestResourceFlow = ai.defineFlow(
     outputSchema: SuggestResourceOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt({ 
-        ...input,
-        // @ts-ignore - Adding resources to the prompt context
-        resources: resourcesData 
-    });
-    
-    // Ensure we always return an object that conforms to the schema
-    return output || { id: undefined, title: undefined };
+    try {
+      const { output } = await prompt({ 
+          ...input,
+          // @ts-ignore - Adding resources to the prompt context
+          resources: resourcesData 
+      });
+      // Ensure we always return an object that conforms to the schema
+      return output || { id: undefined, title: undefined };
+    } catch (error) {
+      console.error("Error in suggestResourceFlow: ", error);
+      return { id: undefined, title: undefined };
+    }
   }
 );

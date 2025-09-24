@@ -89,7 +89,7 @@ const journalReflectionFlow = ai.defineFlow(
     } catch (error) {
        console.error("Error in journalReflectionFlow:", error);
        // Provide a fallback response in case of AI error
-       const fallbackLongTerm = input.longTermContext || { coreThemes: "", personalityTraits: "", recurringProblems: "", values: "", moodHistory: "" };
+       const fallbackLongTerm = input.longTermContext || { coreThemes: "", lifeDomains: { business: "", relationships: "", family: "", health: "", finances: "", personalGrowth: ""}, personalityTraits: "", recurringProblems: "", values: "", moodHistory: "" };
        return {
          reflection: {
            summary: "Thank you for sharing your thoughts today.",
