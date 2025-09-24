@@ -3,7 +3,7 @@
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { User, Volume2 } from "lucide-react";
+import { User, Volume2, StopCircle, Loader2 } from "lucide-react";
 import type { Message } from "./empath-ai-client";
 import { Button } from "./ui/button";
 import { BrainLogo } from "./brain-logo";
@@ -13,10 +13,29 @@ interface ChatMessageProps {
   userName: string | null;
   isInterim?: boolean;
   onSpeak?: (text: string) => void;
+  isSpeaking?: boolean;
+  isAudioLoading?: boolean;
+  onStopSpeaking?: () => void;
 }
 
-export default function ChatMessage({ message, userName, isInterim = false, onSpeak }: ChatMessageProps) {
+export default function ChatMessage({ 
+    message, 
+    userName, 
+    isInterim = false, 
+    onSpeak,
+    isSpeaking,
+    isAudioLoading,
+    onStopSpeaking,
+}: ChatMessageProps) {
   const isAssistant = message.role === "assistant";
+
+  const handleSpeakClick = () => {
+    if (isSpeaking) {
+      onStopSpeaking?.();
+    } else {
+      onSpeak?.(message.content);
+    }
+  }
 
   return (
     <div
@@ -46,10 +65,17 @@ export default function ChatMessage({ message, userName, isInterim = false, onSp
               variant="ghost"
               size="icon"
               className="mt-2 h-7 w-7 text-muted-foreground"
-              onClick={() => onSpeak(message.content)}
+              onClick={handleSpeakClick}
+              disabled={isAudioLoading}
             >
-              <Volume2 className="h-4 w-4" />
-              <span className="sr-only">Speak</span>
+              {isAudioLoading ? (
+                 <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isSpeaking ? (
+                 <StopCircle className="h-4 w-4" />
+              ) : (
+                 <Volume2 className="h-4 w-4" />
+              )}
+              <span className="sr-only">{isSpeaking ? 'Stop speaking' : 'Speak'}</span>
             </Button>
           )}
       </div>

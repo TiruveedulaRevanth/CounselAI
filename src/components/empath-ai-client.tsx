@@ -185,7 +185,8 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
 
   const [isListening, setIsListening] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isAudioLoading, setIsAudioLoading] = useState(false);
+  const [activeSpeakingMessageId, setActiveSpeakingMessageId] = useState<string | null>(null);
   const [userInput, setUserInput] = useState("");
 
   // Settings state
@@ -206,7 +207,6 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
   const speechRecognition = useRef<any>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const stopSpeakingRef = useRef<boolean>(false);
   const userName = currentProfile.name;
   
   const helplineUrls: { [key: string]: string } = {
@@ -471,34 +471,29 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     ].filter(group => group.chats.length > 0);
   }, [chats]);
   
-  const speakText = useCallback(async (text: string) => {
-    if (isSpeaking) {
+  const speakText = useCallback(async (text: string, messageId: string) => {
+    if (activeSpeakingMessageId) {
       handleStopSpeaking();
-      return;
+      if (activeSpeakingMessageId === messageId) return;
     }
   
-    stopSpeakingRef.current = false;
-    setIsSpeaking(true);
+    setIsAudioLoading(true);
+    setActiveSpeakingMessageId(messageId);
   
     try {
       const { audio } = await textToSpeech({ text });
 
-      if (stopSpeakingRef.current) {
-        setIsSpeaking(false);
-        return;
-      }
-  
       if (audio) {
         if (!audioRef.current) {
           audioRef.current = new Audio();
         }
         audioRef.current.src = audio;
         audioRef.current.onended = () => {
-          setIsSpeaking(false);
+            setActiveSpeakingMessageId(null);
         };
         audioRef.current.play().catch(err => {
             console.error("Audio playback error:", err);
-            setIsSpeaking(false);
+            setActiveSpeakingMessageId(null);
         });
       } else {
          toast({
@@ -506,7 +501,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
             title: "Speech Error",
             description: "Could not generate audio. Please try again.",
          });
-        setIsSpeaking(false);
+        setActiveSpeakingMessageId(null);
       }
     } catch (error) {
       console.error("Error during TTS generation:", error);
@@ -515,17 +510,19 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         title: "Speech Error",
         description: "Could not generate or play audio.",
       });
-      setIsSpeaking(false);
+      setActiveSpeakingMessageId(null);
+    } finally {
+        setIsAudioLoading(false);
     }
-  }, [isSpeaking, toast]);
+  }, [activeSpeakingMessageId, toast]);
 
   const handleStopSpeaking = () => {
-    stopSpeakingRef.current = true;
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
-    setIsSpeaking(false);
+    setActiveSpeakingMessageId(null);
+    setIsAudioLoading(false);
   };
 
   const handleMicClick = () => {
@@ -1094,7 +1091,10 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
                         key={message.id} 
                         message={message} 
                         userName={userName}
-                        onSpeak={(text) => speakText(text)}
+                        onSpeak={(text) => speakText(text, message.id)}
+                        isSpeaking={activeSpeakingMessageId === message.id}
+                        isAudioLoading={isAudioLoading && activeSpeakingMessageId === message.id}
+                        onStopSpeaking={handleStopSpeaking}
                        />
                     ))}
                     {isLoading && <ChatMessage.Loading />}
@@ -1112,30 +1112,19 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
                     rows={1}
                 />
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    { isSpeaking ? (
-                        <Tooltip>
-                            <TooltipTrigger asChild={true}>
-                                <Button variant="ghost" size="icon" onClick={handleStopSpeaking}>
-                                    <Square className="h-5 w-5" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent><p>Stop Speaking</p></TooltipContent>
-                        </Tooltip>
-                    ) : (
-                        <Tooltip>
-                            <TooltipTrigger asChild={true}>
-                                <Button 
-                                    variant="ghost"
-                                    size="icon" 
-                                    onClick={handleMicClick}
-                                    className={isListening ? "text-red-500" : ""}
-                                >
-                                    <Mic className="h-5 w-5"/>
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent><p>Use Microphone</p></TooltipContent>
-                        </Tooltip>
-                    )}
+                    <Tooltip>
+                        <TooltipTrigger asChild={true}>
+                            <Button 
+                                variant="ghost"
+                                size="icon" 
+                                onClick={handleMicClick}
+                                className={isListening ? "text-red-500" : ""}
+                            >
+                                <Mic className="h-5 w-5"/>
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Use Microphone</p></TooltipContent>
+                    </Tooltip>
                     <Tooltip>
                         <TooltipTrigger asChild={true}>
                             <Button variant="ghost" size="icon" onClick={() => handleSend( userInput)} disabled={isLoading || !userInput.trim()}>
@@ -1156,5 +1145,3 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     </>
   );
 }
-
-    
