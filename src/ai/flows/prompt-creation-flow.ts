@@ -13,6 +13,7 @@ import { ai } from '@/ai/genkit';
 import {
   PromptBasedEmotionalSupportInputSchema,
   PromptBasedEmotionalSupportOutputSchema,
+  PromptBasedEmotionalSupportOutput as PromptResponse,
 } from '../schemas';
 import type {
   PromptBasedEmotionalSupportInput,
@@ -26,8 +27,22 @@ export type {
 
 export async function promptBasedEmotionalSupport(
   input: PromptBasedEmotionalSupportInput
-): Promise<PromptBasedEmotionalSupportOutput> {
-  return promptBasedEmotionalSupportFlow(input);
+): Promise<PromptResponse> {
+  try {
+    const response = await promptBasedEmotionalSupportFlow(input);
+    // Ensure we always return a valid object, even if the flow somehow resolves to null/undefined
+    if (response) {
+      return response;
+    }
+  } catch (error) {
+    console.error('Error in promptBasedEmotionalSupport:', error);
+  }
+  
+  // Fallback response if the flow fails or returns nothing
+  return {
+    response:
+      "I'm sorry, I'm having a little trouble understanding. Could you please rephrase that?",
+  };
 }
 
 const prompt = ai.definePrompt({
@@ -46,18 +61,10 @@ const promptBasedEmotionalSupportFlow = ai.defineFlow(
     outputSchema: PromptBasedEmotionalSupportOutputSchema,
   },
   async (input) => {
-    try {
-      const { output } = await prompt(input);
-      if (output) {
-        return output;
-      }
+    const { output } = await prompt(input);
+    if (!output) {
       throw new Error('AI failed to generate a response.');
-    } catch (error) {
-      console.error('Error in promptBasedEmotionalSupportFlow:', error);
-      return {
-        response:
-          "I'm sorry, I'm having a little trouble understanding. Could you please rephrase that?",
-      };
     }
+    return output;
   }
 );
