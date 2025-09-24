@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow for converting text to speech using an advanced AI model.
@@ -9,21 +10,15 @@
 
 import { ai } from '@/ai/genkit';
 import { googleAI } from '@genkit-ai/googleai';
-import { z } from 'zod';
 import wav from 'wav';
+import { TextToSpeechInputSchema, TextToSpeechOutputSchema } from '../schemas';
+import type { TextToSpeechInput, TextToSpeechOutput } from '../schemas';
 
-const TextToSpeechInputSchema = z.object({
-  text: z.string().describe('The text to be converted to speech.'),
-});
-export type TextToSpeechInput = z.infer<typeof TextToSpeechInputSchema>;
+export { type TextToSpeechInput, type TextToSpeechOutput };
 
-const TextToSpeechOutputSchema = z.object({
-  audio: z.string().describe("The generated audio as a data URI in WAV format. Expected format: 'data:audio/wav;base64,<encoded_data>'").optional(),
-});
-export type TextToSpeechOutput = z.infer<typeof TextToSpeechOutputSchema>;
-
-
-export async function textToSpeech(input: TextToSpeechInput): Promise<TextToSpeechOutput> {
+export async function textToSpeech(
+  input: TextToSpeechInput
+): Promise<TextToSpeechOutput> {
   return textToSpeechFlow(input);
 }
 
@@ -33,7 +28,11 @@ const textToSpeechFlow = ai.defineFlow(
     inputSchema: TextToSpeechInputSchema,
     outputSchema: TextToSpeechOutputSchema,
   },
-  async ({ text }) => {
+  async ({ text, emotion }) => {
+    // Define the voice based on emotion
+    const voiceName =
+      emotion === 'Sadness' || emotion === 'Anxiety' ? 'Algenib' : 'Achernar';
+
     try {
       const { media } = await ai.generate({
         model: googleAI.model('gemini-2.5-flash-preview-tts'),
@@ -41,7 +40,7 @@ const textToSpeechFlow = ai.defineFlow(
           responseModalities: ['AUDIO'],
           speechConfig: {
             voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: 'Algenib' },
+              prebuiltVoiceConfig: { voiceName },
             },
           },
         },
@@ -61,21 +60,20 @@ const textToSpeechFlow = ai.defineFlow(
 
       // Convert the raw PCM buffer to a WAV buffer.
       const base64Wav = await toWav(pcmBuffer);
-      
+
       if (!base64Wav) {
         console.error('Failed to convert PCM to WAV.');
         return { audio: undefined };
       }
 
       return {
-          audio: `data:audio/wav;base64,${base64Wav}`,
+        audio: `data:audio/wav;base64,${base64Wav}`,
       };
-      
-    } catch(error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error("Error in textToSpeechFlow (Gemini API):", errorMessage);
-        // Return an empty audio object so the client can handle it gracefully
-        return { audio: undefined };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error in textToSpeechFlow (Gemini API):', errorMessage);
+      // Return an empty audio object so the client can handle it gracefully
+      return { audio: undefined };
     }
   }
 );

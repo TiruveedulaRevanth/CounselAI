@@ -12,4 +12,5 @@ import '@/ai/flows/update-journal-flow.ts';
 import '@/ai/flows/summarize-for-journal-flow.ts';
 import '@/ai/flows/journal-reflection-flow.ts';
 import '@/ai/flows/rectify-values-flow.ts';
+import '@/ai/flows/generate-response-and-audio-flow.ts';
     

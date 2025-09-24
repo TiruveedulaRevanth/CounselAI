@@ -11,22 +11,12 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import { SendSmsInputSchema, SendSmsOutputSchema } from '../schemas';
+import type { SendSmsInput, SendSmsOutput } from '../schemas';
 
-const SendSmsInputSchema = z.object({
-  userName: z.string().describe("The name of the user in crisis."),
-  emergencyContactPhone: z.string().describe("The phone number of the emergency contact."),
-});
-export type SendSmsInput = z.infer<typeof SendSmsInputSchema>;
+export { type SendSmsInput, type SendSmsOutput };
 
-const SendSmsOutputSchema = z.object({
-  success: z.boolean().describe("Whether the SMS was sent successfully."),
-  message: z.string().describe("The content of the SMS message that was sent."),
-});
-export type SendSmsOutput = z.infer<typeof SendSmsOutputSchema>;
-
-export async function sendSms(
-  input: SendSmsInput
-): Promise<SendSmsOutput> {
+export async function sendSms(input: SendSmsInput): Promise<SendSmsOutput> {
   return sendSmsFlow(input);
 }
 
@@ -48,28 +38,27 @@ const sendSmsFlow = ai.defineFlow(
       const { output } = await prompt(input);
 
       if (!output || !output.message) {
-        throw new Error("AI failed to generate an SMS message.");
+        throw new Error('AI failed to generate an SMS message.');
       }
-      
+
       // This is a simulation. In a real application, you would integrate
       // an SMS service like Twilio here.
-      console.log("==================================================");
-      console.log("EMERGENCY SMS SIMULATION");
+      console.log('==================================================');
+      console.log('EMERGENCY SMS SIMULATION');
       console.log(`Intended recipient: ${input.emergencyContactPhone}`);
       console.log(`Message: ${output.message}`);
-      console.log("==================================================");
+      console.log('==================================================');
 
       return {
         success: true,
         message: output.message,
       };
-
     } catch (error) {
-       console.error("Error in sendSmsFlow:", error);
-       return { 
-         success: false,
-         message: "Failed to construct or send SMS."
-       };
+      console.error('Error in sendSmsFlow:', error);
+      return {
+        success: false,
+        message: 'Failed to construct or send SMS.',
+      };
     }
   }
 );

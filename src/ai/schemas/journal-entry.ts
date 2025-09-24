@@ -26,6 +26,36 @@ export const ChatJournalSchema = z.object({
 });
 export type ChatJournal = z.infer<typeof ChatJournalSchema>;
 
+export const MessageSchema = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z.string(),
+});
+
+export const PersonalizeTherapyStyleInputSchema = z.object({
+  userName: z.string().optional().describe("The user's name."),
+  therapyStyle: z
+    .string()
+    .describe(
+      'A description of the desired therapy style, including techniques, approaches, and personality weightings.'
+    ),
+  userInput: z.string().describe('The user input or question.'),
+  history: z.array(MessageSchema).optional().describe("The user's recent conversation history. The last message is the user's current input."),
+  userContext: UserContextSchema.describe("A long-term summary of the user's context."),
+  chatJournal: ChatJournalSchema.describe("A summary of the user's progress and suggested solutions specific to the current conversation.")
+});
+export type PersonalizeTherapyStyleInput = z.infer<
+  typeof PersonalizeTherapyStyleInputSchema
+>;
+
+export const PersonalizeTherapyStyleOutputSchema = z.object({
+  response: z.string().describe('The AI assistant’s response, personalized to the specified therapy style.'),
+  needsHelp: z.boolean().optional().describe('A flag indicating if the user is in crisis and needs immediate help.'),
+  detectedEmotion: z.enum(["Sadness", "Anxiety", "Anger", "Joy", "Neutral"]).optional().describe("The primary emotion detected in the user's input."),
+});
+export type PersonalizeTherapyStyleOutput = z.infer<
+  typeof PersonalizeTherapyStyleOutputSchema
+>;
+
 export const UpdateJournalInputSchema = z.object({
   history: z.array(z.object({
     role: z.enum(['user', 'assistant']),
@@ -43,7 +73,7 @@ export const UpdateJournalOutputSchema = z.object({
 export type UpdateJournalOutput = z.infer<typeof UpdateJournalOutputSchema>;
 
 
-const ShortTermContextSchema = z.object({
+export const ShortTermContextSchema = z.object({
     mood: z.string().describe("The user's current mood or emotion."),
     events: z.string().describe("Recent events or triggers that are on the user's mind."),
     concerns: z.string().describe("The primary concerns or focus of the day."),
@@ -88,3 +118,19 @@ export const SummarizeForJournalOutputSchema = z.object({
   summary: z.string().describe("A concise summary of the user's query, no more than 20 words."),
 });
 export type SummarizeForJournalOutput = z.infer<typeof SummarizeForJournalOutputSchema>;
+
+export const GenerateResponseAndAudioInputSchema = z.object({
+  personalizationInput: z.any(),
+});
+export type GenerateResponseAndAudioInput = z.infer<
+  typeof GenerateResponseAndAudioInputSchema
+>;
+
+export const GenerateResponseAndAudioOutputSchema = z.object({
+  textResponse: z.string(),
+  audioResponse: z.string().optional(),
+  needsHelp: z.boolean().optional(),
+});
+export type GenerateResponseAndAudioOutput = z.infer<
+  typeof GenerateResponseAndAudioOutputSchema
+>;

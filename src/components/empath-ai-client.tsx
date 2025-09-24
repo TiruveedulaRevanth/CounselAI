@@ -1,9 +1,8 @@
 
 "use client";
 
-import { personalizeTherapyStyle } from "@/ai/flows/therapy-style-personalization";
+import { generateResponseAndAudio } from "@/ai/flows/generate-response-and-audio-flow";
 import { summarizeChat } from "@/ai/flows/summarize-chat-flow";
-import { textToSpeech } from "@/ai/flows/text-to-speech-flow";
 import { suggestResource } from "@/ai/flows/suggest-resource-flow";
 import { sendSms } from "@/ai/flows/send-sms-flow";
 import { updateJournal } from "@/ai/flows/update-journal-flow";
@@ -76,6 +75,7 @@ export type Message = {
   content: string;
   resourceId?: string;
   resourceTitle?: string;
+  audio?: string;
 };
 
 export type Chat = {
@@ -471,49 +471,44 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     ].filter(group => group.chats.length > 0);
   }, [chats]);
   
-  const speakText = useCallback(async (text: string, messageId: string) => {
-    if (activeSpeakingMessageId) {
-      handleStopSpeaking();
-      if (activeSpeakingMessageId === messageId) return;
-    }
-  
-    setIsAudioLoading(true);
-    setActiveSpeakingMessageId(messageId);
-  
-    try {
-      const { audio } = await textToSpeech({ text });
-
-      if (audio) {
-        if (!audioRef.current) {
-          audioRef.current = new Audio();
-        }
-        audioRef.current.src = audio;
-        audioRef.current.onended = () => {
-            setActiveSpeakingMessageId(null);
-        };
-        audioRef.current.play().catch(err => {
-            console.error("Audio playback error:", err);
-            setActiveSpeakingMessageId(null);
-        });
-      } else {
-         toast({
-            variant: "destructive",
-            title: "Speech Error",
-            description: "Could not generate audio. Please try again.",
-         });
-        setActiveSpeakingMessageId(null);
+  const speakText = useCallback(async (text: string, messageId: string, audioData?: string) => {
+      if (activeSpeakingMessageId) {
+          handleStopSpeaking();
+          if (activeSpeakingMessageId === messageId) return;
       }
-    } catch (error) {
-      console.error("Error during TTS generation:", error);
-      toast({
-        variant: "destructive",
-        title: "Speech Error",
-        description: "Could not generate or play audio.",
-      });
-      setActiveSpeakingMessageId(null);
-    } finally {
-        setIsAudioLoading(false);
-    }
+  
+      if (!audioData) {
+          toast({
+              variant: "destructive",
+              title: "Audio Error",
+              description: "No audio data is available for this message.",
+          });
+          return;
+      }
+  
+      setActiveSpeakingMessageId(messageId);
+      setIsAudioLoading(true);
+  
+      try {
+          if (!audioRef.current) {
+              audioRef.current = new Audio();
+          }
+          audioRef.current.src = audioData;
+          audioRef.current.onended = () => {
+              setActiveSpeakingMessageId(null);
+          };
+          await audioRef.current.play();
+      } catch (error) {
+          console.error("Audio playback error:", error);
+          toast({
+              variant: "destructive",
+              title: "Speech Error",
+              description: "Could not play audio.",
+          });
+          setActiveSpeakingMessageId(null);
+      } finally {
+          setIsAudioLoading(false);
+      }
   }, [activeSpeakingMessageId, toast]);
 
   const handleStopSpeaking = () => {
@@ -669,16 +664,19 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
 
         const journalSummaryPromise = summarizeForJournal({ query: text });
 
-        const responsePromise = personalizeTherapyStyle({
+        const personalizationInput = {
             userName: userName,
             therapyStyle: therapyStyle,
             userInput: text,
             history: historyForAI.slice(0, -1),
             userContext: userContext,
             chatJournal: updatedChat.journal,
-        });
+        };
+        
+        const responseAndAudioPromise = generateResponseAndAudio({ personalizationInput });
 
-        const [summarizeResult, resourceResult, journalSummaryResult, aiResult] = await Promise.all([summarizePromise, resourcePromise, journalSummaryPromise, responsePromise]);
+
+        const [summarizeResult, resourceResult, journalSummaryResult, aiResult] = await Promise.all([summarizePromise, resourcePromise, journalSummaryPromise, responseAndAudioPromise]);
 
         // Add user's query to their journal
         if (journalSummaryResult?.summary) {
@@ -728,13 +726,14 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         }
         
         let finalAssistantMessage: Message | null = null;
-        if (aiResult.response) {
+        if (aiResult.textResponse) {
             const newAssistantMessage: Message = {
                 id: Date.now().toString() + "-ai",
                 role: "assistant",
-                content: aiResult.response,
+                content: aiResult.textResponse,
                 resourceId: resourceResult?.id,
                 resourceTitle: resourceResult?.title,
+                audio: aiResult.audioResponse,
             };
             finalAssistantMessage = newAssistantMessage;
             finalChats = finalChats.map(chat =>
@@ -1091,7 +1090,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
                         key={message.id} 
                         message={message} 
                         userName={userName}
-                        onSpeak={(text) => speakText(text, message.id)}
+                        onSpeak={(text) => speakText(text, message.id, message.audio)}
                         isSpeaking={activeSpeakingMessageId === message.id}
                         isAudioLoading={isAudioLoading && activeSpeakingMessageId === message.id}
                         onStopSpeaking={handleStopSpeaking}

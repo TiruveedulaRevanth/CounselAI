@@ -9,38 +9,24 @@
  * - PersonalizeTherapyStyleOutput - The return type for the personalizeTherapyStyle function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-import { UserContextSchema, ChatJournalSchema } from '../schemas/journal-entry';
+import { ai } from '@/ai/genkit';
+import {
+  UserContextSchema,
+  ChatJournalSchema,
+  PersonalizeTherapyStyleInputSchema,
+  PersonalizeTherapyStyleOutputSchema,
+  MessageSchema,
+} from '../schemas/journal-entry';
 
-const MessageSchema = z.object({
-  role: z.enum(['user', 'assistant']),
-  content: z.string(),
-});
+import type {
+  PersonalizeTherapyStyleInput,
+  PersonalizeTherapyStyleOutput,
+} from '../schemas/journal-entry';
 
-const PersonalizeTherapyStyleInputSchema = z.object({
-  userName: z.string().optional().describe("The user's name."),
-  therapyStyle: z
-    .string()
-    .describe(
-      'A description of the desired therapy style, including techniques, approaches, and personality weightings.'
-    ),
-  userInput: z.string().describe('The user input or question.'),
-  history: z.array(MessageSchema).optional().describe("The user's recent conversation history. The last message is the user's current input."),
-  userContext: UserContextSchema.describe("A long-term summary of the user's context."),
-  chatJournal: ChatJournalSchema.describe("A summary of the user's progress and suggested solutions specific to the current conversation.")
-});
-export type PersonalizeTherapyStyleInput = z.infer<
-  typeof PersonalizeTherapyStyleInputSchema
->;
-
-const PersonalizeTherapyStyleOutputSchema = z.object({
-  response: z.string().describe('The AI assistant’s response, personalized to the specified therapy style.'),
-  needsHelp: z.boolean().optional().describe('A flag indicating if the user is in crisis and needs immediate help.'),
-});
-export type PersonalizeTherapyStyleOutput = z.infer<
-  typeof PersonalizeTherapyStyleOutputSchema
->;
+export {
+  type PersonalizeTherapyStyleInput,
+  type PersonalizeTherapyStyleOutput,
+};
 
 export async function personalizeTherapyStyle(
   input: PersonalizeTherapyStyleInput
@@ -48,11 +34,10 @@ export async function personalizeTherapyStyle(
   return personalizeTherapyStyleFlow(input);
 }
 
-
 const prompt = ai.definePrompt({
   name: 'personalizeTherapyStylePrompt',
-  input: {schema: PersonalizeTherapyStyleInputSchema},
-  output: {schema: PersonalizeTherapyStyleOutputSchema},
+  input: { schema: PersonalizeTherapyStyleInputSchema },
+  output: { schema: PersonalizeTherapyStyleOutputSchema },
   system: `You are an AI assistant specializing in mental health counseling. Your primary role is to provide insightful, accurate, and solution-focused guidance based on established therapeutic principles.
 
 Before generating any response, you MUST follow this process:
@@ -60,9 +45,10 @@ Before generating any response, you MUST follow this process:
 **INTEGRATION LAYER (Your Internal Reasoning):**
 1.  **Safety First (Self-Harm Risk):** You MUST analyze the user's input for any indication of self-harm or suicidal ideation (e.g., "I want to kill myself," "I want to end my life").
     *   **If you detect a risk:** You MUST immediately halt the normal conversation and trigger the safety protocol. Do not answer their question. Instead, set the 'needsHelp' flag to true and provide this exact response: "It sounds like you are in a lot of pain, and I'm deeply concerned. Your safety is the most important thing. Please know that help is available, and you don’t have to go through this alone. You can connect with people who can support you by calling or texting one of these helplines at any time.\\nFor India, you can call AASRA at +91-9820466726.\\nFor the US, you can call or text the National Suicide & Crisis Lifeline at 988.\\nFor other regions, please search for a local crisis hotline.\\nIf you are in immediate danger, please call your local emergency services."
-2.  **Medical Disclaimer:** You MUST determine if the user is asking a medical question (e.g., asking for a diagnosis, or about medication).
+2.  **Detect Emotion:** Analyze the 'userInput' to determine the user's primary emotional state. Classify it as one of: "Sadness", "Anxiety", "Anger", "Joy", or "Neutral". Set the 'detectedEmotion' field.
+3.  **Medical Disclaimer:** You MUST determine if the user is asking a medical question (e.g., asking for a diagnosis, or about medication).
     *   **If the query is medical:** You MUST decline the request. Do not answer the user's question directly. Instead, you MUST generate a response where you gently explain that you cannot provide medical advice because you are an AI, not a healthcare professional and that they should consult a qualified doctor for any health concerns.
-3.  **Synthesize Context (The Blend):** If safety checks are clear, your primary task is to beautifully blend the user's long-term context with their current situation.
+4.  **Synthesize Context (The Blend):** If safety checks are clear, your primary task is to beautifully blend the user's long-term context with their current situation.
     *   **Review and Connect:** First, review the 'userInput' and the 'history'. Then, carefully review the 'userContext' and 'chatJournal'. Your goal is to find the connections. Does today's anxiety about a work project link to a 'recurringProblem' of 'perfectionism'? Does their current feeling of hopelessness contradict a noted 'personalityTrait' of 'resilience'?
     *   **Be Proactive:** Do not just passively answer the user's immediate question. Your response MUST be built on the connection you just identified. Use this synthesis to offer a deeper, more insightful perspective that goes beyond the surface-level query. Use phrases like, "This feeling of being stuck seems to be connected to the pattern of 'analysis paralysis' we've discussed before..." or "I notice this situation brings up the core theme of 'fear of failure' from your long-term context. Let's explore that."
 
@@ -120,25 +106,30 @@ const personalizeTherapyStyleFlow = ai.defineFlow(
   },
   async (input) => {
     // Augment history with a boolean for easier templating
-    const historyWithRoles = input.history?.map(message => ({
-        ...message,
-        isUser: message.role === 'user'
+    const historyWithRoles = input.history?.map((message) => ({
+      ...message,
+      isUser: message.role === 'user',
     }));
 
     try {
-      const {output} = await prompt({...input, history: historyWithRoles});
+      const { output } = await prompt({ ...input, history: historyWithRoles });
       if (!output) {
         // This can happen if the model's response is filtered or empty.
-        return { response: "I'm sorry, I was unable to generate a response. Could you please try rephrasing your message?", needsHelp: false };
+        return {
+          response:
+            "I'm sorry, I was unable to generate a response. Could you please try rephrasing your message?",
+          needsHelp: false,
+        };
       }
       return output;
     } catch (error) {
-       console.error("Error in personalizeTherapyStyleFlow:", error);
-       // This will catch validation errors if the model returns null or a malformed object.
-       return { response: "I'm sorry, I encountered an unexpected issue and couldn't process your request. Please try again.", needsHelp: false };
+      console.error('Error in personalizeTherapyStyleFlow:', error);
+      // This will catch validation errors if the model returns null or a malformed object.
+      return {
+        response:
+          "I'm sorry, I encountered an unexpected issue and couldn't process your request. Please try again.",
+        needsHelp: false,
+      };
     }
   }
 );
-
-    
-    
