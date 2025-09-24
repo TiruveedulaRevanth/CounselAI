@@ -140,6 +140,8 @@ const UserContextEditor = ({
     };
 
     const hasChanges = JSON.stringify(watchedValues) !== JSON.stringify(userContext);
+    
+    const safeLifeDomains = userContext.lifeDomains || { business: '', relationships: '', family: '', health: '', finances: '', personalGrowth: '' };
 
     if (!isEditing) {
         return (
@@ -153,12 +155,12 @@ const UserContextEditor = ({
                         <AccordionItem value="item-1">
                             <AccordionTrigger>Life Domains</AccordionTrigger>
                             <AccordionContent className="pl-4 space-y-3">
-                                <ContextSection title="Business" content={userContext.lifeDomains.business} />
-                                <ContextSection title="Relationships" content={userContext.lifeDomains.relationships} />
-                                <ContextSection title="Family" content={userContext.lifeDomains.family} />
-                                <ContextSection title="Health" content={userContext.lifeDomains.health} />
-                                <ContextSection title="Finances" content={userContext.lifeDomains.finances} />
-                                <ContextSection title="Personal Growth" content={userContext.lifeDomains.personalGrowth} />
+                                <ContextSection title="Business" content={safeLifeDomains.business} />
+                                <ContextSection title="Relationships" content={safeLifeDomains.relationships} />
+                                <ContextSection title="Family" content={safeLifeDomains.family} />
+                                <ContextSection title="Health" content={safeLifeDomains.health} />
+                                <ContextSection title="Finances" content={safeLifeDomains.finances} />
+                                <ContextSection title="Personal Growth" content={safeLifeDomains.personalGrowth} />
                             </AccordionContent>
                         </AccordionItem>
                     </Accordion>
