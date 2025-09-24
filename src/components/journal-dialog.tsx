@@ -27,12 +27,13 @@ import {
   UserContextSchema,
 } from '@/ai/schemas/journal-entry';
 import type { UserContext, ChatJournal, UserJournalEntry } from '@/ai/schemas/journal-entry';
-import { BookText, Edit, Save, X, PlusCircle, ArrowLeft } from 'lucide-react';
+import { BookText, Edit, Save, X, PlusCircle, ArrowLeft, Bot } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { format } from 'date-fns';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { Separator } from './ui/separator';
 import { generateJournalReflection } from '@/ai/flows/journal-reflection-flow';
+import { rectifyValues } from '@/ai/flows/rectify-values-flow';
 import { useToast } from '@/hooks/use-toast';
 import * as z from 'zod';
 import { FormDescription } from './ui/form';
@@ -354,8 +355,8 @@ const EntryDetail = ({ entry, onBack }: { entry: UserJournalEntry; onBack: () =>
     );
 };
 
-const UserContextEditorFormSchema = z.object({
-    values: z.string().describe("A summary of the user's core values and life goals."),
+const RectifyValuesFormSchema = z.object({
+    feedback: z.string().min(10, 'Please provide more detailed feedback for the AI.'),
 });
 
 
@@ -370,104 +371,116 @@ const UserContextEditor = ({
     userContext: UserContext;
     setUserContext: (context: UserContext) => void;
 }) => {
-    const form = useForm<z.infer<typeof UserContextEditorFormSchema>>({
-        resolver: zodResolver(UserContextEditorFormSchema),
+    const { toast } = useToast();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const form = useForm<z.infer<typeof RectifyValuesFormSchema>>({
+        resolver: zodResolver(RectifyValuesFormSchema),
         defaultValues: {
-            values: userContext.values || "",
+            feedback: "",
         },
     });
 
     useEffect(() => {
-        form.reset({ values: userContext.values || "" });
-    }, [userContext, form]);
+        if (!isEditing) {
+            form.reset({ feedback: "" });
+        }
+    }, [isEditing, form]);
 
-    const onSave = (data: z.infer<typeof UserContextEditorFormSchema>) => {
-        setUserContext({ ...userContext, values: data.values });
-        setIsEditing(false);
+    const onSave = async (data: z.infer<typeof RectifyValuesFormSchema>) => {
+        setIsSubmitting(true);
+        toast({ title: 'AI is processing your corrections...' });
+        try {
+            const result = await rectifyValues({
+                currentValues: userContext.values || "",
+                userFeedback: data.feedback,
+            });
+
+            if (result.updatedValues) {
+                setUserContext({ ...userContext, values: result.updatedValues });
+                toast({ title: 'Values & Goals Updated', description: 'The AI has updated its understanding based on your feedback.' });
+                setIsEditing(false);
+            } else {
+                throw new Error("AI failed to return updated values.");
+            }
+        } catch (error) {
+            console.error("Error rectifying values:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not update values. Please try again.' });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const onCancel = () => {
-        form.reset({ values: userContext.values || "" });
         setIsEditing(false);
     };
     
     const safeLifeDomains = userContext.lifeDomains || { business: '', relationships: '', family: '', health: '', finances: '', personalGrowth: '' };
 
-    if (!isEditing) {
-        return (
-             <div className="h-full relative">
-                 <div className="absolute top-4 right-6">
-                    <Button onClick={() => setIsEditing(true)}>
-                        <Edit className="mr-2 h-4 w-4" /> Edit Values
-                    </Button>
-                </div>
-                <div className="space-y-6 p-6">
-                    <ContextSection title="Core Themes" content={userContext.coreThemes} />
-                    <Accordion type="single" collapsible className="w-full">
-                        <AccordionItem value="item-1">
-                            <AccordionTrigger>Life Domains</AccordionTrigger>
-                            <AccordionContent className="pl-4 space-y-3 pt-4">
-                                <ContextSection title="Business" content={safeLifeDomains.business} />
-                                <ContextSection title="Relationships" content={safeLifeDomains.relationships} />
-                                <ContextSection title="Family" content={safeLifeDomains.family} />
-                                <ContextSection title="Health" content={safeLifeDomains.health} />
-                                <ContextSection title="Finances" content={safeLifeDomains.finances} />
-                                <ContextSection title="Personal Growth" content={safeLifeDomains.personalGrowth} />
-                            </AccordionContent>
-                        </AccordionItem>
-                    </Accordion>
-                    <ContextSection title="Personality Traits" content={userContext.personalityTraits} />
-                    <ContextSection title="Recurring Problems / Stressors" content={userContext.recurringProblems} />
-                    <ContextSection title="Values & Goals" content={userContext.values} />
-                    <ContextSection title="Mood & Milestone History" content={userContext.moodHistory} />
-                </div>
-            </div>
-        )
-    }
-
     return (
-        <div className="h-full">
-            <div className="p-6">
-                <div className="space-y-6 mb-6">
-                    <p className="text-sm text-muted-foreground p-4 bg-muted/50 rounded-lg">This is the AI's long-term understanding of you, synthesized from your conversations. You can directly edit your **Values & Goals** below to help guide the AI. Other sections are updated automatically by the AI after your chats.</p>
-                    <ContextSection title="Core Themes" content={userContext.coreThemes} />
-                    <Accordion type="single" collapsible className="w-full">
-                        <AccordionItem value="item-1">
-                            <AccordionTrigger>Life Domains</AccordionTrigger>
-                            <AccordionContent className="pl-4 space-y-3 pt-4">
-                                <ContextSection title="Business" content={safeLifeDomains.business} />
-                                <ContextSection title="Relationships" content={safeLifeDomains.relationships} />
-                                <ContextSection title="Family" content={safeLifeDomains.family} />
-                                <ContextSection title="Health" content={safeLifeDomains.health} />
-                                <ContextSection title="Finances" content={safeLifeDomains.finances} />
-                                <ContextSection title="Personal Growth" content={safeLifeDomains.personalGrowth} />
-                            </AccordionContent>
-                        </AccordionItem>
-                    </Accordion>
-                    <ContextSection title="Personality Traits" content={userContext.personalityTraits} />
-                    <ContextSection title="Recurring Problems / Stressors" content={userContext.recurringProblems} />
-                    <ContextSection title="Mood & Milestone History" content={userContext.moodHistory} />
-                </div>
+         <div className="h-full">
+             <div className="p-6 space-y-6">
+                 {!isEditing && (
+                    <div className="flex justify-end">
+                        <Button onClick={() => setIsEditing(true)}>
+                            <Edit className="mr-2 h-4 w-4" /> Rectify Values
+                        </Button>
+                    </div>
+                )}
+                
+                <p className="text-sm text-muted-foreground p-4 bg-muted/50 rounded-lg">This is the AI's long-term understanding of you, synthesized from your conversations. If the "Values & Goals" section seems inaccurate, use the 'Rectify' feature to provide corrections and guide the AI.</p>
+                <ContextSection title="Core Themes" content={userContext.coreThemes} />
+                <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="item-1">
+                        <AccordionTrigger>Life Domains</AccordionTrigger>
+                        <AccordionContent className="pl-4 space-y-3 pt-4">
+                            <ContextSection title="Business" content={safeLifeDomains.business} />
+                            <ContextSection title="Relationships" content={safeLifeDomains.relationships} />
+                            <ContextSection title="Family" content={safeLifeDomains.family} />
+                            <ContextSection title="Health" content={safeLifeDomains.health} />
+                            <ContextSection title="Finances" content={safeLifeDomains.finances} />
+                            <ContextSection title="Personal Growth" content={safeLifeDomains.personalGrowth} />
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+                <ContextSection title="Personality Traits" content={userContext.personalityTraits} />
+                <ContextSection title="Recurring Problems / Stressors" content={userContext.recurringProblems} />
+                <ContextSection title="Mood & Milestone History" content={userContext.moodHistory} />
+                
                 <Separator className="my-6"/>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">
-                        <FormField control={form.control} name="values" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="text-base font-semibold">Values & Goals</FormLabel>
-                                <FormDescription>You can edit this section to guide the AI on what's most important to you.</FormDescription>
-                                <FormControl><Textarea {...field} rows={6} className="text-base" /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-                        
-                        <div className="sticky bottom-0 bg-background py-4 border-t -mx-6 px-6">
-                            <div className="flex justify-end gap-2">
-                                <Button type="button" variant="ghost" onClick={onCancel}><X className="mr-2 h-4 w-4"/>Cancel</Button>
-                                <Button type="submit"><Save className="mr-2 h-4 w-4"/>Save Changes</Button>
-                            </div>
-                        </div>
-                    </form>
-                </Form>
+                
+                <div className="space-y-1">
+                    <h4 className="font-semibold text-base">Values & Goals</h4>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{userContext.values || 'Not yet analyzed.'}</p>
+                </div>
+                
+                {isEditing && (
+                    <div className="pt-4">
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">
+                                <FormField control={form.control} name="feedback" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-base font-semibold">Your Corrections</FormLabel>
+                                        <FormDescription>Tell the AI what it got wrong or what to change about your Values & Goals.</FormDescription>
+                                        <FormControl>
+                                            <Textarea {...field} rows={5} placeholder="e.g., 'You noted I value financial stability, but it's more about creative freedom. Also, my goal isn't to climb the corporate ladder, but to start my own business.'" className="text-base" />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                
+                                <div className="sticky bottom-0 bg-background py-4 border-t -mx-6 px-6">
+                                    <div className="flex justify-end gap-2">
+                                        <Button type="button" variant="ghost" onClick={onCancel} disabled={isSubmitting}><X className="mr-2 h-4 w-4"/>Cancel</Button>
+                                        <Button type="submit" disabled={isSubmitting}>
+                                            <Bot className="mr-2 h-4 w-4"/>
+                                            {isSubmitting ? 'Updating...' : 'Submit Corrections to AI'}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </form>
+                        </Form>
+                    </div>
+                )}
             </div>
         </div>
     )

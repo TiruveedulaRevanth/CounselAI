@@ -10,4 +10,6 @@ import '@/ai/flows/text-to-speech-flow.ts';
 import '@/ai/flows/send-sms-flow.ts';
 import '@/ai/flows/update-journal-flow.ts';
 import '@/ai/flows/summarize-for-journal-flow.ts';
+import '@/ai/flows/journal-reflection-flow.ts';
+import '@/ai/flows/rectify-values-flow.ts';
     
