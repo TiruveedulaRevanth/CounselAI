@@ -129,13 +129,15 @@ const personalizeTherapyStyleFlow = ai.defineFlow(
       const {output} = await prompt({...input, history: historyWithRoles});
       if (!output) {
         // This can happen if the model's response is filtered or empty.
-        return { response: "I'm sorry, I was unable to generate a response. Could you please try rephrasing your message?" };
+        return { response: "I'm sorry, I was unable to generate a response. Could you please try rephrasing your message?", needsHelp: false };
       }
       return output;
     } catch (error) {
        console.error("Error in personalizeTherapyStyleFlow:", error);
        // This will catch validation errors if the model returns null or a malformed object.
-       return { response: "I'm sorry, I encountered an unexpected issue and couldn't process your request. Please try again." };
+       return { response: "I'm sorry, I encountered an unexpected issue and couldn't process your request. Please try again.", needsHelp: false };
     }
   }
 );
+
+    
