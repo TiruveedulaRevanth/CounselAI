@@ -487,7 +487,10 @@ const suggestResourceFlow = ai.defineFlow(
       return output || { id: undefined, title: undefined };
     } catch (error) {
       console.error("Error in suggestResourceFlow: ", error);
+      // On error, return a valid, empty object to prevent client-side crashes
       return { id: undefined, title: undefined };
     }
   }
 );
+
+    
