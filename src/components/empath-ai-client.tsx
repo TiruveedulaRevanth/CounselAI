@@ -6,8 +6,6 @@ import { summarizeChat } from "@/ai/flows/summarize-chat-flow";
 import { textToSpeech } from "@/ai/flows/text-to-speech-flow";
 import { suggestResource } from "@/ai/flows/suggest-resource-flow";
 import { sendSms } from "@/ai/flows/send-sms-flow";
-import { updateJournal } from "@/ai/flows/update-journal-flow";
-import { summarizeForJournal } from "@/ai/flows/summarize-for-journal-flow";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { LogOut, Mic, Send, Settings, Trash2, MoreHorizontal, MessageSquarePlus, Square, Library, Sparkles, Siren, Edit, Archive, ArchiveX, FilePenLine, BookText } from "lucide-react";
@@ -61,8 +59,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import Image from 'next/image';
-import type { UserContext, ChatJournal } from "@/ai/schemas/journal";
-import JournalDialog, { UserJournalEntry } from "./journal-dialog";
+import JournalPage from "./journal-page";
+import type { JournalEntry, LongTermContext } from "@/ai/schemas/journal-entry";
 
 declare global {
   interface Window {
@@ -84,7 +82,6 @@ export type Chat = {
   name: string;
   messages: Message[];
   createdAt: number;
-  journal: ChatJournal;
 };
 
 type DeletionScope = "today" | "week" | "month" | "all";
@@ -140,24 +137,23 @@ interface EmpathAIClientProps {
     onSignOut: () => void;
 }
 
-const initialUserContext: UserContext = {
-    personality: "Not yet analyzed.",
-    strengths: "Not yet analyzed.",
-    problems: "Not yet analyzed.",
-};
-
-const initialChatJournal: ChatJournal = {
-    suggestedSolutions: "Not yet analyzed.",
-    progressSummary: "No progress to report yet."
+const initialLongTermContext: LongTermContext = {
+    coreThemes: 'Just starting out, no themes identified yet.',
+    personalityTraits: 'Just starting out, no specific traits identified yet.',
+    recurringProblems: 'Just starting out, no recurring problems identified yet.',
+    values: 'Just starting out, no values identified yet.',
+    moodHistory: 'Just starting out, no mood history recorded yet.',
 };
 
 export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAIClientProps) {
   const { toast } = useToast();
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
-  const [userContext, setUserContext] = useState<UserContext>(initialUserContext);
-  const [userJournalEntries, setUserJournalEntries] = useState<UserJournalEntry[]>([]);
   
+  // New Journal State
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [longTermContext, setLongTermContext] = useState<LongTermContext>(initialLongTermContext);
+
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
@@ -218,19 +214,12 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         const parsedChats = storedChats ? JSON.parse(storedChats) : [];
         setChats(parsedChats);
 
-        const storedUserContext = localStorage.getItem(`counselai-user-context-${activeProfile.id}`);
-        let parsedUserContext = storedUserContext ? JSON.parse(storedUserContext) : initialUserContext;
+        // Load new journal system data
+        const storedJournalEntries = localStorage.getItem(`counselai-journal-entries-${activeProfile.id}`);
+        setJournalEntries(storedJournalEntries ? JSON.parse(storedJournalEntries) : []);
 
-        // Data migration: Handle old data structure with "struggles"
-        if (parsedUserContext && parsedUserContext.struggles && !parsedUserContext.problems) {
-            parsedUserContext.problems = parsedUserContext.struggles;
-            delete parsedUserContext.struggles;
-        }
-
-        setUserContext(parsedUserContext);
-
-        const storedUserJournal = localStorage.getItem(`counselai-user-journal-${activeProfile.id}`);
-        setUserJournalEntries(storedUserJournal ? JSON.parse(storedUserJournal) : []);
+        const storedLongTermContext = localStorage.getItem(`counselai-long-term-context-${activeProfile.id}`);
+        setLongTermContext(storedLongTermContext ? JSON.parse(storedLongTermContext) : initialLongTermContext);
 
         // Load settings
         const storedStyle = localStorage.getItem(`counselai-therapy-style-${activeProfile.id}`);
@@ -271,15 +260,17 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
   useEffect(() => {
     if (!isDataLoading) {
         localStorage.setItem(`counselai-chats-${currentProfile.id}`, JSON.stringify(chats));
-        localStorage.setItem(`counselai-user-context-${currentProfile.id}`, JSON.stringify(userContext));
-        localStorage.setItem(`counselai-user-journal-${currentProfile.id}`, JSON.stringify(userJournalEntries));
+        // New journal system persistence
+        localStorage.setItem(`counselai-journal-entries-${currentProfile.id}`, JSON.stringify(journalEntries));
+        localStorage.setItem(`counselai-long-term-context-${currentProfile.id}`, JSON.stringify(longTermContext));
+
         localStorage.setItem(`counselai-therapy-style-${currentProfile.id}`, therapyStyle);
         localStorage.setItem(`counselai-persona-${currentProfile.id}`, activePersona.name);
         if (activePersona.name === 'Custom') {
             localStorage.setItem(`counselai-custom-persona-${currentProfile.id}`, JSON.stringify(customPersona));
         }
     }
-  }, [chats, userContext, userJournalEntries, therapyStyle, activePersona, customPersona, currentProfile.id, isDataLoading]);
+  }, [chats, journalEntries, longTermContext, therapyStyle, activePersona, customPersona, currentProfile.id, isDataLoading]);
 
 
   const handleSignOut = () => {
@@ -316,8 +307,9 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     localStorage.removeItem(`counselai-therapy-style-${currentProfile.id}`);
     localStorage.removeItem(`counselai-persona-${currentProfile.id}`);
     localStorage.removeItem(`counselai-custom-persona-${currentProfile.id}`);
-    localStorage.removeItem(`counselai-user-context-${currentProfile.id}`);
-    localStorage.removeItem(`counselai-user-journal-${currentProfile.id}`);
+    // Delete new journal data
+    localStorage.removeItem(`counselai-journal-entries-${currentProfile.id}`);
+    localStorage.removeItem(`counselai-long-term-context-${currentProfile.id}`);
     
     toast({
         title: "Profile Deleted",
@@ -333,7 +325,6 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
       name: "New Chat",
       messages: [],
       createdAt: Date.now(),
-      journal: initialChatJournal,
     };
     const updatedChats = [newChat, ...chats];
     setChats(updatedChats);
@@ -602,7 +593,6 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
             name: "New Chat",
             messages: [],
             createdAt: Date.now(),
-            journal: initialChatJournal,
         };
         currentChats = [newChat, ...currentChats];
         currentChat = newChat;
@@ -638,10 +628,6 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     }
     
     try {
-        // This is a reference to the latest user context state, to prevent stale closures.
-        const currentUserContext = userContext;
-        const currentChatJournal = currentChat.journal;
-
         // Start all AI calls in parallel
         const summarizePromise = isFirstMessage 
             ? summarizeChat({ message: text })
@@ -649,40 +635,16 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
             
         const resourcePromise = suggestResource({ query: text });
 
-        const journalSummaryPromise = summarizeForJournal({ message: text });
 
         const responsePromise = personalizeTherapyStyle({
             userName: userName,
             therapyStyle: therapyStyle,
             userInput: text,
             history: historyForAI.slice(0, -1), // Send history *before* the current message
-            userContext: currentUserContext,
-            chatJournal: currentChat.journal,
         });
 
-        // Trigger journal update in the background, but don't wait for it
-        if (historyForAI.length > 0 && historyForAI.length % 3 === 0) { // Update journal every 3 messages
-            updateJournal({ currentUserContext, currentChatJournal, history: historyForAI })
-                .then(newJournals => {
-                    setUserContext(newJournals.userContext);
-                    // Find the chat and update its journal
-                    setChats(prevChats => prevChats.map(c => 
-                        c.id === currentChatId ? { ...c, journal: newJournals.chatJournal } : c
-                    ));
-                });
-        }
+        const [summarizeResult, resourceResult, aiResult] = await Promise.all([summarizePromise, resourcePromise, responsePromise]);
 
-        const [summarizeResult, resourceResult, aiResult, journalSummaryResult] = await Promise.all([summarizePromise, resourcePromise, responsePromise, journalSummaryPromise]);
-
-        // Add summarized user query to their journal entries
-        if (journalSummaryResult?.summary) {
-            const newJournalEntry: UserJournalEntry = {
-                id: `entry-${Date.now()}`,
-                date: Date.now(),
-                summary: journalSummaryResult.summary,
-            };
-            setUserJournalEntries(prevEntries => [newJournalEntry, ...prevEntries]);
-        }
 
         // Check for crisis redirection
         if (aiResult.needsHelp) {
@@ -895,12 +857,13 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         />
         <EmergencyResourcesDialog isOpen={isEmergencyOpen} onOpenChange={setIsEmergencyOpen} />
         <ResourcesLibrary isOpen={isLibraryOpen} onOpenChange={setIsLibraryOpen} />
-        <JournalDialog 
+        <JournalPage
             isOpen={isJournalOpen}
             onOpenChange={setIsJournalOpen}
-            userContext={userContext}
-            chatJournal={activeChat?.journal || null}
-            userEntries={userJournalEntries}
+            entries={journalEntries}
+            setEntries={setJournalEntries}
+            longTermContext={longTermContext}
+            setLongTermContext={setLongTermContext}
         />
 
       <Sidebar>
@@ -1113,6 +1076,3 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     </>
   );
 }
-
-    
-    
