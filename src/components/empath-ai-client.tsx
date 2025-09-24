@@ -57,7 +57,7 @@ import { Avatar, AvatarFallback } from "./ui/avatar";
 import { User } from "lucide-react";
 import type { Profile } from "./auth-page";
 import EditProfileDialog from "./edit-profile-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import JournalDialog from "./journal-dialog";
@@ -594,18 +594,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     }, 100);
   }, [activeChat?.messages, isLoading]);
 
-  const handleMicClick = () => {
-    handleStopSpeaking();
-    if (isListening) {
-      speechRecognition.current?.stop();
-    } else {
-       setUserInput("");
-       speechRecognition.current?.start();
-    }
-    setIsListening(prev => !prev);
-  };
-
- const handleSend = async (text: string) => {
+  const handleSend = async (text: string) => {
     if (!text.trim() || isLoading) return;
 
     let currentChatId = activeChatId;
@@ -821,6 +810,9 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         <DialogContent>
             <DialogHeader>
                 <DialogTitle>Rename Chat</DialogTitle>
+                <DialogDescription>
+                    Enter a new name for this chat session.
+                </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -1145,5 +1137,3 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     </>
   );
 }
-
-    
