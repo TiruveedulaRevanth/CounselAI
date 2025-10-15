@@ -9,13 +9,14 @@ import { Button } from "./ui/button";
 import { BrainLogo } from "./brain-logo";
 
 interface ChatMessageProps {
-  message: Message;
+  message: Message & { audio?: string };
   userName: string | null;
   isInterim?: boolean;
   onSpeak?: (text: string) => void;
   isSpeaking?: boolean;
   isAudioLoading?: boolean;
   onStopSpeaking?: () => void;
+  onMicClick?: () => void;
 }
 
 export default function ChatMessage({ 
@@ -26,6 +27,7 @@ export default function ChatMessage({
     isSpeaking,
     isAudioLoading,
     onStopSpeaking,
+    onMicClick,
 }: ChatMessageProps) {
   const isAssistant = message.role === "assistant";
 
@@ -40,7 +42,8 @@ export default function ChatMessage({
 
   const handleBubbleClick = () => {
     if (isAssistant && isSpeaking) {
-      onStopSpeaking?.();
+        onStopSpeaking?.();
+        onMicClick?.();
     }
   }
 
@@ -120,3 +123,5 @@ const Loading = () => (
 );
 
 ChatMessage.Loading = Loading;
+
+    

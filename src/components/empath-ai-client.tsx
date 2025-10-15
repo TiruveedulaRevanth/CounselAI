@@ -76,7 +76,6 @@ export type Message = {
   content: string;
   resourceId?: string;
   resourceTitle?: string;
-  audio?: string; // This is now transient session state.
 };
 
 export type Chat = {
@@ -196,7 +195,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
   // Settings state
   const [therapyStyle, setTherapyStyle] = useState(therapyStyles[0].prompt);
   const [selectedLanguage, setSelectedLanguage] = useState(supportedLanguages[0].code);
-  const [activePersona, setActivePersona] = useState(therapyStyles[0]);
+  const [activePersona, setActivePersona] = useState<any>(therapyStyles[0]);
   const [customPersona, setCustomPersona] = useState<CustomPersona>({
     [therapyStyles[0].name]: 100,
     [therapyStyles[1].name]: 0,
@@ -292,10 +291,16 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
   useEffect(() => {
     if (!isDataLoading) {
       try {
-        const chatsToPersist = chats.map(({ messages, ...rest }) => ({
-            ...rest,
-            messages: messages.map(({ audio, ...msg }) => msg), // Ensure audio is not persisted
-        }));
+        const chatsToPersist = chats.map(chat => {
+            const { messages, ...rest } = chat;
+            return {
+                ...rest,
+                messages: messages.map(({ id, role, content, resourceId, resourceTitle }) => ({
+                    id, role, content, resourceId, resourceTitle
+                }))
+            };
+        });
+
         localStorage.setItem(`counselai-chats-${currentProfile.id}`, JSON.stringify(chatsToPersist));
         localStorage.setItem(`counselai-user-context-${currentProfile.id}`, JSON.stringify(userContext));
         localStorage.setItem(`counselai-user-journal-${currentProfile.id}`, JSON.stringify(userJournalEntries));
@@ -309,7 +314,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
           toast({
             variant: 'destructive',
             title: 'Storage Limit Reached',
-            description: 'Could not save chat history. Your browser storage is full.',
+            description: 'Could not save new messages. Your browser storage is full.',
           });
         } else {
           console.error("Failed to save data to local storage:", error);
@@ -506,7 +511,39 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     ].filter(group => group.chats.length > 0);
   }, [chats]);
   
-  const speakText = useCallback(async (text: string, messageId: string, emotion?: "Sadness" | "Anxiety" | "Anger" | "Joy" | "Neutral") => {
+  const handleMicClick = useCallback(() => {
+    if (!speechRecognition.current) {
+        toast({
+            variant: "destructive",
+            title: "Speech Recognition Not Supported",
+            description: "Your browser does not support speech recognition.",
+        });
+        return;
+    }
+
+    if (isListening) {
+      speechRecognition.current.stop();
+      setIsListening(false);
+    } else {
+      speechRecognition.current.start();
+      setIsListening(true);
+    }
+  }, [isListening, toast]);
+  
+  const handleStopSpeaking = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setActiveSpeakingMessageId(null);
+    setIsAudioLoading(false);
+    // Automatically turn on the mic after interrupting
+    if (!isListening) {
+        handleMicClick();
+    }
+  }, [isListening, handleMicClick]);
+
+  const speakText = useCallback(async (text: string, messageId: string, emotion?: "Sadness" | "Anxiety" | "Anger" | "Joy" | "Neutral" | "Confusion" | "Stress" | "Happiness" | "Shame/Guilt" | "Hopelessness" | "Tiredness/Exhaustion" | "Love/Affection" | "Mixed") => {
       if (activeSpeakingMessageId) {
           handleStopSpeaking();
           if (activeSpeakingMessageId === messageId) return;
@@ -551,16 +588,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
               setIsAudioLoading(false);
           }
       }
-  }, [activeSpeakingMessageId, toast, sessionAudio]);
-
-  const handleStopSpeaking = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
-    setActiveSpeakingMessageId(null);
-    setIsAudioLoading(false);
-  };
+  }, [activeSpeakingMessageId, toast, sessionAudio, handleStopSpeaking]);
 
   const handleSend = useCallback(async (text: string) => {
     if (!text.trim() || isLoading) return;
@@ -744,26 +772,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     } finally {
         setIsLoading(false);
     }
-  }, [activeChatId, chats, isLoading, isListening, userName, therapyStyle, userContext, toast, currentProfile, helplineUrls, speakText]);
-
-  const handleMicClick = () => {
-    if (!speechRecognition.current) {
-        toast({
-            variant: "destructive",
-            title: "Speech Recognition Not Supported",
-            description: "Your browser does not support speech recognition.",
-        });
-        return;
-    }
-
-    if (isListening) {
-      speechRecognition.current.stop();
-      setIsListening(false);
-    } else {
-      speechRecognition.current.start();
-      setIsListening(true);
-    }
-  };
+  }, [activeChatId, chats, isLoading, isListening, userName, therapyStyle, userContext, toast, currentProfile, helplineUrls, speakText, handleStopSpeaking]);
 
 
   useEffect(() => {
@@ -1138,12 +1147,13 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
                     {messagesWithSessionAudio.map(message => (
                       <ChatMessage 
                         key={message.id} 
-                        message={message} 
+                        message={message as Message & { audio?: string }} 
                         userName={userName}
-                        onSpeak={(text) => speakText(text, message.id)}
+                        onSpeak={(text) => speakText(text, message.id, (message as any).detectedEmotion)}
                         isSpeaking={activeSpeakingMessageId === message.id}
                         isAudioLoading={isAudioLoading && activeSpeakingMessageId === message.id}
                         onStopSpeaking={handleStopSpeaking}
+                        onMicClick={handleMicClick}
                        />
                     ))}
                     {isLoading && <ChatMessage.Loading />}
