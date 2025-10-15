@@ -642,15 +642,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     
     try {
         const startTime = Date.now();
-        // Start all AI calls in parallel
-        const summarizePromise = isFirstMessage 
-            ? summarizeChat({ message: text })
-            : Promise.resolve(null);
-            
-        const resourcePromise = suggestResource({ query: text });
-
-        const journalSummaryPromise = summarizeForJournal({ query: text });
-
+        // Get text response first
         const personalizationPromise = personalizeTherapyStyle({
             userName: userName,
             therapyStyle: therapyStyle,
@@ -660,8 +652,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
             chatJournal: updatedChat.journal,
         });
 
-        // Get text response first to generate audio
-        const aiResult = await personalizationPromise;
+        const [aiResult] = await Promise.all([personalizationPromise]);
 
         if (aiResult.needsHelp) {
              // Send SMS to emergency contact
@@ -685,16 +676,11 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         if (!aiResult.response) {
             throw new Error("Received an empty response from the AI.");
         }
-
-        // Now generate audio and wait for other promises
-        const audioPromise = textToSpeech({ text: aiResult.response, emotion: aiResult.detectedEmotion });
         
-        const [summarizeResult, resourceResult, journalSummaryResult, audioResult] = await Promise.all([
-            summarizePromise, 
-            resourcePromise, 
-            journalSummaryPromise, 
-            audioPromise
-        ]);
+        // Generate audio while other promises run in the background
+        const audioPromise = textToSpeech({ text: aiResult.response, emotion: aiResult.detectedEmotion });
+
+        const [audioResult] = await Promise.all([audioPromise]);
 
         const endTime = Date.now();
         const duration = ((endTime - startTime) / 1000).toFixed(1);
@@ -703,44 +689,18 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
             description: `Thought for ${duration} seconds.`,
         });
 
-        // Add user's query to their journal
-        if (journalSummaryResult?.summary) {
-            const newJournalEntry: UserJournalEntry = {
-                id: `user-entry-${Date.now()}`,
-                date: Date.now(),
-                shortTermContext: {
-                    concerns: journalSummaryResult.summary,
-                    mood: 'N/A',
-                    events: 'N/A',
-                    copingAttempts: 'N/A'
-                }
-            };
-            setUserJournalEntries(prev => [newJournalEntry, ...prev]);
-        }
-        
-        let finalChats = updatedChatsWithUserMessage;
-
-        if (summarizeResult?.title) {
-            finalChats = finalChats.map(chat =>
-                chat.id === currentChatId
-                ? { ...chat, name: summarizeResult.title }
-                : chat
-            );
-        }
-        
         const newAssistantMessage: Message = {
             id: Date.now().toString() + "-ai",
             role: "assistant",
             content: aiResult.response,
-            resourceId: resourceResult?.id,
-            resourceTitle: resourceResult?.title,
         };
-        
-        finalChats = finalChats.map(chat =>
+
+        let finalChats = updatedChatsWithUserMessage.map(chat =>
             chat.id === currentChatId
                 ? { ...chat, messages: [...chat.messages, newAssistantMessage] }
                 : chat
         );
+        setChats(finalChats);
         
         if (audioResult?.audio) {
             setSessionAudio(prev => ({ ...prev, [newAssistantMessage.id]: audioResult.audio! }));
@@ -753,26 +713,81 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
             setActiveSpeakingMessageId(newAssistantMessage.id);
         }
 
-        setChats(finalChats);
-        setIsLoading(false); // Set loading false after text/audio are ready
+        setIsLoading(false);
         
-        // After getting a response, update the journals in the background
-        const fullHistory = [...historyForAI, {role: 'assistant', content: newAssistantMessage.content}];
-        const journalUpdateResult = await updateJournal({
-            history: fullHistory,
-            currentUserContext: userContext,
-            currentChatJournal: updatedChat.journal,
-        });
+        // --- Run background tasks after responding to user ---
 
-        if (journalUpdateResult) {
-            setUserContext(journalUpdateResult.updatedUserContext);
-            // We need to update the chats again with the new journal
-            setChats(prevChats => prevChats.map(chat =>
-                chat.id === currentChatId
-                ? { ...chat, journal: journalUpdateResult.updatedChatJournal }
-                : chat
-            ));
-        }
+        const backgroundTasks = async () => {
+            const summarizePromise = isFirstMessage 
+                ? summarizeChat({ message: text })
+                : Promise.resolve(null);
+                
+            const resourcePromise = suggestResource({ query: text });
+            const journalSummaryPromise = summarizeForJournal({ query: text });
+
+            const [summarizeResult, resourceResult, journalSummaryResult] = await Promise.all([
+                summarizePromise,
+                resourcePromise,
+                journalSummaryPromise,
+            ]);
+
+            // Update chat name if it was the first message
+            if (summarizeResult?.title) {
+                setChats(prevChats => prevChats.map(chat =>
+                    chat.id === currentChatId ? { ...chat, name: summarizeResult.title } : chat
+                ));
+            }
+
+            // Add resource to the message if found
+            if (resourceResult?.id) {
+                 setChats(prevChats => prevChats.map(chat => {
+                    if (chat.id === currentChatId) {
+                        const updatedMsgs = chat.messages.map(msg => 
+                            msg.id === newAssistantMessage.id 
+                            ? { ...msg, resourceId: resourceResult.id, resourceTitle: resourceResult.title }
+                            : msg
+                        );
+                        return { ...chat, messages: updatedMsgs };
+                    }
+                    return chat;
+                }));
+            }
+
+            // Add user's query to their journal
+            if (journalSummaryResult?.summary) {
+                const newJournalEntry: UserJournalEntry = {
+                    id: `user-entry-${Date.now()}`,
+                    date: Date.now(),
+                    shortTermContext: {
+                        concerns: journalSummaryResult.summary,
+                        mood: 'N/A',
+                        events: 'N/A',
+                        copingAttempts: 'N/A'
+                    }
+                };
+                setUserJournalEntries(prev => [newJournalEntry, ...prev]);
+            }
+            
+            // Update the long-term journals
+            const fullHistory = [...historyForAI, {role: 'assistant', content: newAssistantMessage.content}];
+            const journalUpdateResult = await updateJournal({
+                history: fullHistory,
+                currentUserContext: userContext,
+                currentChatJournal: updatedChat.journal,
+            });
+
+            if (journalUpdateResult) {
+                setUserContext(journalUpdateResult.updatedUserContext);
+                setChats(prevChats => prevChats.map(chat =>
+                    chat.id === currentChatId
+                    ? { ...chat, journal: journalUpdateResult.updatedChatJournal }
+                    : chat
+                ));
+            }
+        };
+
+        // Fire and forget
+        backgroundTasks();
 
     } catch (error) {
         console.error("Error calling AI:", error);
