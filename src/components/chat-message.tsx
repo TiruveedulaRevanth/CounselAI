@@ -43,7 +43,6 @@ export default function ChatMessage({
   const handleBubbleClick = () => {
     if (isAssistant && isSpeaking) {
         onStopSpeaking?.();
-        onMicClick?.();
     }
   }
 
@@ -123,5 +122,3 @@ const Loading = () => (
 );
 
 ChatMessage.Loading = Loading;
-
-    

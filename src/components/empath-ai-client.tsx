@@ -540,10 +540,8 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     setActiveSpeakingMessageId(null);
     setIsAudioLoading(false);
     // Automatically turn on the mic after interrupting
-    if (!isListening) {
-        handleMicClick();
-    }
-  }, [isListening, handleMicClick]);
+    handleMicClick();
+  }, [handleMicClick]);
 
   const speakText = useCallback(async (text: string, messageId: string, emotion?: "Sadness" | "Anxiety" | "Anger" | "Joy" | "Neutral" | "Confusion" | "Stress" | "Happiness" | "Shame/Guilt" | "Hopelessness" | "Tiredness/Exhaustion" | "Love/Affection" | "Mixed") => {
       if (activeSpeakingMessageId) {
@@ -1206,5 +1204,3 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     </>
   );
 }
-
-    
