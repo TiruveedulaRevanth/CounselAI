@@ -659,8 +659,41 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
             chatJournal: updatedChat.journal,
         });
 
+        // Get text response first to generate audio
+        const aiResult = await personalizationPromise;
 
-        const [summarizeResult, resourceResult, journalSummaryResult, aiResult] = await Promise.all([summarizePromise, resourcePromise, journalSummaryPromise, personalizationPromise]);
+        if (aiResult.needsHelp) {
+             // Send SMS to emergency contact
+            if (currentProfile.emergencyContactPhone) {
+                await sendSms({
+                    userName: currentProfile.name,
+                    emergencyContactPhone: currentProfile.emergencyContactPhone
+                });
+                toast({
+                    title: "Emergency Contact Alerted",
+                    description: "A message has been sent to your emergency contact.",
+                    duration: 5000,
+                });
+            }
+            // Redirect to helpline
+            const regionUrl = helplineUrls[currentProfile.region] || helplineUrls.DEFAULT;
+            window.location.href = regionUrl;
+            return; // Stop further processing
+        }
+
+        if (!aiResult.response) {
+            throw new Error("Received an empty response from the AI.");
+        }
+
+        // Now generate audio and wait for other promises
+        const audioPromise = textToSpeech({ text: aiResult.response, emotion: aiResult.detectedEmotion });
+        
+        const [summarizeResult, resourceResult, journalSummaryResult, audioResult] = await Promise.all([
+            summarizePromise, 
+            resourcePromise, 
+            journalSummaryPromise, 
+            audioPromise
+        ]);
 
         // Add user's query to their journal
         if (journalSummaryResult?.summary) {
@@ -676,28 +709,6 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
             };
             setUserJournalEntries(prev => [newJournalEntry, ...prev]);
         }
-
-
-        // Check for crisis redirection
-        if (aiResult.needsHelp) {
-            // Send SMS to emergency contact
-            if (currentProfile.emergencyContactPhone) {
-                await sendSms({
-                    userName: currentProfile.name,
-                    emergencyContactPhone: currentProfile.emergencyContactPhone
-                });
-                toast({
-                    title: "Emergency Contact Alerted",
-                    description: "A message has been sent to your emergency contact.",
-                    duration: 5000,
-                });
-            }
-
-            // Redirect to helpline
-            const regionUrl = helplineUrls[currentProfile.region] || helplineUrls.DEFAULT;
-            window.location.href = regionUrl;
-            return; // Stop further processing
-        }
         
         let finalChats = updatedChatsWithUserMessage;
 
@@ -709,52 +720,51 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
             );
         }
         
-        let finalAssistantMessage: Message | null = null;
-        if (aiResult.response) {
-            const newAssistantMessage: Message = {
-                id: Date.now().toString() + "-ai",
-                role: "assistant",
-                content: aiResult.response,
-                resourceId: resourceResult?.id,
-                resourceTitle: resourceResult?.title,
-            };
-            
-            finalAssistantMessage = newAssistantMessage;
-            finalChats = finalChats.map(chat =>
-                chat.id === currentChatId
-                    ? { ...chat, messages: [...chat.messages, newAssistantMessage] }
-                    : chat
-            );
-
-            // Fetch audio in the background but don't wait for it
-            speakText(aiResult.response, newAssistantMessage.id, aiResult.detectedEmotion);
-
-        } else {
-            throw new Error("Received an empty response from the AI.");
+        const newAssistantMessage: Message = {
+            id: Date.now().toString() + "-ai",
+            role: "assistant",
+            content: aiResult.response,
+            resourceId: resourceResult?.id,
+            resourceTitle: resourceResult?.title,
+        };
+        
+        finalChats = finalChats.map(chat =>
+            chat.id === currentChatId
+                ? { ...chat, messages: [...chat.messages, newAssistantMessage] }
+                : chat
+        );
+        
+        if (audioResult?.audio) {
+            setSessionAudio(prev => ({ ...prev, [newAssistantMessage.id]: audioResult.audio! }));
+            if (!audioRef.current) {
+                audioRef.current = new Audio();
+            }
+            audioRef.current.src = audioResult.audio;
+            audioRef.current.onended = () => setActiveSpeakingMessageId(null);
+            audioRef.current.play();
+            setActiveSpeakingMessageId(newAssistantMessage.id);
         }
 
         setChats(finalChats);
+        setIsLoading(false); // Set loading false after text/audio are ready
         
-        // After getting a response, update the journals
-        if (finalAssistantMessage) {
-            const fullHistory = [...historyForAI, {role: 'assistant', content: finalAssistantMessage.content}];
-            const journalUpdateResult = await updateJournal({
-                history: fullHistory,
-                currentUserContext: userContext,
-                currentChatJournal: updatedChat.journal,
-            });
+        // After getting a response, update the journals in the background
+        const fullHistory = [...historyForAI, {role: 'assistant', content: newAssistantMessage.content}];
+        const journalUpdateResult = await updateJournal({
+            history: fullHistory,
+            currentUserContext: userContext,
+            currentChatJournal: updatedChat.journal,
+        });
 
-            if (journalUpdateResult) {
-                setUserContext(journalUpdateResult.updatedUserContext);
-                const finalChatsWithJournal = finalChats.map(chat =>
-                    chat.id === currentChatId
-                    ? { ...chat, journal: journalUpdateResult.updatedChatJournal }
-                    : chat
-                );
-                setChats(finalChatsWithJournal);
-            }
+        if (journalUpdateResult) {
+            setUserContext(journalUpdateResult.updatedUserContext);
+            // We need to update the chats again with the new journal
+            setChats(prevChats => prevChats.map(chat =>
+                chat.id === currentChatId
+                ? { ...chat, journal: journalUpdateResult.updatedChatJournal }
+                : chat
+            ));
         }
-
 
     } catch (error) {
         console.error("Error calling AI:", error);
@@ -769,10 +779,9 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
                 ? { ...chat, messages: currentChat.messages }
                 : chat
          ));
-    } finally {
-        setIsLoading(false);
+         setIsLoading(false);
     }
-  }, [activeChatId, chats, isLoading, isListening, userName, therapyStyle, userContext, toast, currentProfile, helplineUrls, speakText, handleStopSpeaking]);
+  }, [activeChatId, chats, isLoading, isListening, userName, therapyStyle, userContext, toast, currentProfile, helplineUrls]);
 
 
   useEffect(() => {
