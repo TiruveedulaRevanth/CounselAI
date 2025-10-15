@@ -692,7 +692,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         const [summarizeResult, resourceResult, journalSummaryResult, audioResult] = await Promise.all([
             summarizePromise, 
             resourcePromise, 
-            journalSummaryResult, 
+            journalSummaryPromise, 
             audioPromise
         ]);
 
@@ -1221,5 +1221,3 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     </>
   );
 }
-
-    
