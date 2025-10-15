@@ -641,6 +641,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     }
     
     try {
+        const startTime = Date.now();
         // Start all AI calls in parallel
         const summarizePromise = isFirstMessage 
             ? summarizeChat({ message: text })
@@ -691,9 +692,16 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         const [summarizeResult, resourceResult, journalSummaryResult, audioResult] = await Promise.all([
             summarizePromise, 
             resourcePromise, 
-            journalSummaryPromise, 
+            journalSummaryResult, 
             audioPromise
         ]);
+
+        const endTime = Date.now();
+        const duration = ((endTime - startTime) / 1000).toFixed(1);
+        toast({
+            title: "Response Generated",
+            description: `Thought for ${duration} seconds.`,
+        });
 
         // Add user's query to their journal
         if (journalSummaryResult?.summary) {
@@ -1213,3 +1221,5 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     </>
   );
 }
+
+    
