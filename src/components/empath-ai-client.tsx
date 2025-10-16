@@ -58,8 +58,8 @@ import { User } from "lucide-react";
 import type { Profile } from "./auth-page";
 import EditProfileDialog from "./edit-profile-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import JournalDialog from "./journal-dialog";
 import type { UserContext, ChatJournal, UserJournalEntry } from "@/ai/schemas/journal-entry";
 
@@ -643,7 +643,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     try {
         const startTime = Date.now();
         
-        // Get text and audio response
+        // Get text and audio response in parallel
         const personalizationPromise = personalizeTherapyStyle({
             userName: userName,
             therapyStyle: therapyStyle,
@@ -681,7 +681,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
         const audioPromise = textToSpeech({ text: aiResult.response, emotion: aiResult.detectedEmotion });
 
         const [audioResult] = await Promise.all([audioPromise]);
-
+        
         const endTime = Date.now();
         const duration = ((endTime - startTime) / 1000).toFixed(1);
         toast({
@@ -767,31 +767,38 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
                 };
                 setUserJournalEntries(prev => [newJournalEntry, ...prev]);
             }
-            
-            // Update the long-term journals
-            const fullHistory = [...historyForAI, {role: 'assistant', content: newAssistantMessage.content}];
-            const journalUpdateResult = await updateJournal({
-                history: fullHistory,
-                currentUserContext: userContext,
-                currentChatJournal: updatedChat.journal,
-            });
-
-            if (journalUpdateResult) {
-                setUserContext(journalUpdateResult.updatedUserContext);
-                setChats(prevChats => prevChats.map(chat =>
-                    chat.id === currentChatId
-                    ? { ...chat, journal: journalUpdateResult.updatedChatJournal }
-                    : chat
-                ));
-            }
           } catch(error) {
               console.error("Error in background tasks:", error);
               // We don't need to show a user-facing error for background tasks
           }
         };
 
-        // Fire and forget
+        // Fire and forget background tasks.
         backgroundTasks();
+
+        // Fire and forget journal update separately as it's the longest task.
+        (async () => {
+            try {
+                const fullHistory = [...historyForAI, {role: 'assistant', content: newAssistantMessage.content}];
+                const journalUpdateResult = await updateJournal({
+                    history: fullHistory,
+                    currentUserContext: userContext,
+                    currentChatJournal: updatedChat.journal,
+                });
+
+                if (journalUpdateResult) {
+                    setUserContext(journalUpdateResult.updatedUserContext);
+                    setChats(prevChats => prevChats.map(chat =>
+                        chat.id === currentChatId
+                        ? { ...chat, journal: journalUpdateResult.updatedChatJournal }
+                        : chat
+                    ));
+                }
+            } catch (error) {
+                 console.error("Error updating journal in background:", error);
+            }
+        })();
+
 
     } catch (error) {
         console.error("Error calling AI:", error);
@@ -1240,5 +1247,6 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     </>
   );
 }
+
 
     
