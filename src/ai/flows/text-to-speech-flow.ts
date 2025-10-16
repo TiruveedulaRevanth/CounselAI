@@ -36,9 +36,8 @@ const textToSpeechFlow = ai.defineFlow(
     outputSchema: TextToSpeechOutputSchema,
   },
   async ({ text, emotion }) => {
-    // Define the voice based on emotion
-    const isSoothing = emotion === 'Sadness' || emotion === 'Anxiety' || emotion === 'Hopelessness' || emotion === 'Shame/Guilt' || emotion === 'Tiredness/Exhaustion';
-    const voiceName = isSoothing ? 'Algenib' : 'Achernar';
+    // Use a single consistent voice for a unified persona.
+    const voiceName = 'Algenib';
 
     try {
       const { media } = await ai.generate({
