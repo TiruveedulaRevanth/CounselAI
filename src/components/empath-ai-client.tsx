@@ -210,6 +210,10 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
   const speechRecognition = useRef<any>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const listeningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const finalTranscriptRef = useRef<string>("");
+
   const userName = currentProfile.name;
   
   const helplineUrls: { [key: string]: string } = {
@@ -523,10 +527,12 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
 
     if (isListening) {
       speechRecognition.current.stop();
-      setIsListening(false);
+      // onend will handle setting isListening to false
     } else {
       // Prevent starting if already in a listening-like state
       if (isListening) return;
+      finalTranscriptRef.current = "";
+      setUserInput("");
       speechRecognition.current.start();
       setIsListening(true);
     }
@@ -637,7 +643,6 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     handleStopSpeaking();
     if (isListening) {
         speechRecognition.current?.stop();
-        setIsListening(false);
     }
     
     try {
@@ -817,35 +822,78 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     }
   }, [activeChatId, chats, isLoading, isListening, userName, therapyStyle, userContext, toast, currentProfile, helplineUrls]);
 
-
+  // Effect to set up speech recognition
   useEffect(() => {
     if ("SpeechRecognition" in window || "webkitSpeechRecognition" in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
-      recognition.continuous = false; // Important: process speech after a single utterance
+      
+      recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = selectedLanguage;
 
+      const stopListening = () => {
+        setIsListening(false);
+        speechRecognition.current?.stop();
+        if (listeningTimeoutRef.current) {
+          clearTimeout(listeningTimeoutRef.current);
+        }
+      };
+
+      const handleSendTranscript = () => {
+        const transcript = finalTranscriptRef.current.trim();
+        if (transcript) {
+          handleSend(transcript);
+        }
+        finalTranscriptRef.current = "";
+        setUserInput("");
+      };
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        // Set a hard timeout for the listening session
+        if (listeningTimeoutRef.current) clearTimeout(listeningTimeoutRef.current);
+        listeningTimeoutRef.current = setTimeout(() => {
+           stopListening();
+           handleSendTranscript();
+        }, 45000); // 45-second overall limit
+      };
+
       recognition.onresult = (event: any) => {
+        // Clear the end-of-speech timer
+        if (speechTimeoutRef.current) {
+          clearTimeout(speechTimeoutRef.current);
+        }
+
         let interimTranscript = "";
-        let finalTranscript = "";
+        let currentFinalTranscript = "";
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           const transcript = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
-            finalTranscript += transcript;
+            currentFinalTranscript += transcript;
           } else {
             interimTranscript += transcript;
           }
         }
-        setUserInput(finalTranscript + interimTranscript);
         
-        if (finalTranscript.trim()) {
-            handleSend(finalTranscript.trim());
-        }
+        finalTranscriptRef.current += currentFinalTranscript;
+        setUserInput(finalTranscriptRef.current + interimTranscript);
+
+        // Set a timer to stop if the user pauses for 2 seconds
+        speechTimeoutRef.current = setTimeout(() => {
+          stopListening();
+          handleSendTranscript();
+        }, 2000);
       };
       
       recognition.onend = () => {
+        if (isListening) {
+          // If it ends unexpectedly, finalize the speech
+          handleSendTranscript();
+        }
         setIsListening(false);
+        if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
+        if (listeningTimeoutRef.current) clearTimeout(listeningTimeoutRef.current);
       };
       
       recognition.onerror = (event: any) => {
@@ -861,7 +909,7 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
               title: "Speech Recognition Error",
               description: "Network error. Please check your connection and try again.",
             });
-        } else if (event.error !== 'no-speech') {
+        } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
             console.error("Speech recognition error", event.error);
             toast({
               variant: "destructive",
@@ -874,7 +922,15 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
 
       speechRecognition.current = recognition;
     }
-  }, [toast, selectedLanguage, handleSend]);
+
+    // Cleanup function
+    return () => {
+        speechRecognition.current?.abort();
+        if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
+        if (listeningTimeoutRef.current) clearTimeout(listeningTimeoutRef.current);
+    }
+  }, [toast, selectedLanguage, handleSend, isListening]);
+
 
   useEffect(() => {
     // This timeout ensures that the DOM has updated before we try to scroll.
@@ -1247,6 +1303,5 @@ export default function EmpathAIClient({ activeProfile, onSignOut }: EmpathAICli
     </>
   );
 }
-
 
     
