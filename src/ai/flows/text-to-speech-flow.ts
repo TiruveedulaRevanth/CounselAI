@@ -37,12 +37,7 @@ const textToSpeechFlow = ai.defineFlow(
   },
   async ({ text, emotion }) => {
     
-    let voiceName = 'Algenib'; // Default calm, steady voice
-
-    // Select a more energetic voice for positive emotions
-    if (emotion === 'Joy' || emotion === 'Happiness') {
-        voiceName = 'Cymbal'; 
-    }
+    const voiceName = 'Algenib'; // Default calm, steady voice
 
     try {
       const { media } = await ai.generate({
